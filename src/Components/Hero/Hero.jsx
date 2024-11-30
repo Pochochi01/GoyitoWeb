@@ -37,6 +37,7 @@ const Hero = () => {
         infinite: true,
         speed: 800,
         slidesToScroll: 1,
+        autoplay:true,
         autoplaySpeed: 4000,
         cssEase: "ease-in-out",
         pauseOnHover:false,
@@ -44,7 +45,8 @@ const Hero = () => {
       };    
 
   return (
-    <div className='container'>
+    <div className='relative overflow-hidden min-h-[500px] sm:min-h-[650px] flex justify-center items-center'>
+    <div className='container pt-4'>
         <div className='overflow-hidden rounded-3xl min-h-[550px] sm:min-h-[650px] 
         hero-bg-color flex justify-center items-center'>
             <div className='container pb-8 sm:pb-0'>
@@ -59,7 +61,8 @@ const Hero = () => {
                                 text-center sm:text-left order-2 sm:order-1 relative z-10'>
                                     <h1 className='text-2xl sm:text-6xl lg:text-2xl font-bold'>{data.subtitle}</h1>
                                     <h1 className='text-5xl sm:text-6xl lg:text-7xl font-bold'>{data.title}</h1>
-                                    <h1 className='text-5xl uppercase text-white dark:text-white/5 sm:text-[80px] md:text-[100px] xl:text-[150px] font-bold'>{data.title2}</h1>
+                                    <h1 className='text-5xl uppercase text-white
+                                     dark:text-white/5 sm:text-[80px] md:text-[100px] xl:text-[125px] font-bold'>{data.title2}</h1>
                                     <div>
                                         <Button text = "Comprar Ahora" bgColor = "bg-primary" textColor = "text-white"/>
                                             
@@ -84,6 +87,7 @@ const Hero = () => {
             </Slider>
             </div>
         </div>
+    </div>
     </div>
   )
 }
