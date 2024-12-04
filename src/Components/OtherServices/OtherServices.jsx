@@ -35,7 +35,7 @@ const OtherServices = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 gap-y-8">
         {
           ServiceData.map((data) => (
-        <div className='flex flex-col items-start sm:flex-row gap-4'>
+        <div className='flex flex-col items-start sm:flex-row gap-4' key={data.id}>
           {data.icon}
         <div>
         <h1 className='lg:text-xl font-bold'>{data.title}</h1>

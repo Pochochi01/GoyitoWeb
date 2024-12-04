@@ -29,7 +29,7 @@ const HeroData = [
     }
 ]
 
-const Hero = () => {
+const Hero = ({handleOrderPopup}) => {
 
     const settings = {
         dots: true,
@@ -64,7 +64,8 @@ const Hero = () => {
                                     <h1 className='text-5xl uppercase text-white
                                      dark:text-white/5 sm:text-[80px] md:text-[100px] xl:text-[125px] font-bold'>{data.title2}</h1>
                                     <div>
-                                        <Button text = "Comprar Ahora" bgColor = "bg-primary" textColor = "text-white"/>
+                                        <Button text = "Comprar Ahora" bgColor = "bg-primary" 
+                                        textColor = "text-white" handleOrderPopup={handleOrderPopup}/>
                                             
                                     </div>
                                 </div>    

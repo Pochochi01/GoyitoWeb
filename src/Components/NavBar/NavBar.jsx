@@ -1,4 +1,4 @@
-import React from "react";
+import {React} from "react";
 import { IoMdSearch } from "react-icons/io";
 import { FaCaretDown, FaCartShopping } from "react-icons/fa6";
 import DarkMode from "./DarkMode";
@@ -46,8 +46,9 @@ const DropdownLinks = [
   },
 ];
 
-const NavBar = () => {
-  const [open, setOpen] = React.useState(false);
+const NavBar = ({handleOrderPopup, handleOpen}) => {
+  
+  //const [open, setOpen] = React.useState(false);
 
   return (
     <div className="bg-white dark:bg-gray-900 dark:text- duration-200 relative z-40">
@@ -124,7 +125,7 @@ const NavBar = () => {
             </div>
             {/*order botton section*/}
 
-            <buttom className="relative p-3">
+            <buttom className="relative p-3" onClick={handleOrderPopup}>
               <FaCartShopping className="text-xl text-gray-600 dark:text-gray-400" />
               <div
                 className="w-4 h-4 bg-red-500 text-white rounded-full absolute 
@@ -138,13 +139,13 @@ const NavBar = () => {
               <DarkMode />
             </div>
             {/*Mobile burger menu section*/}
-            <div className="md:hidden " onClick={() => setOpen(!open)}>
+            <div className="md:hidden " onClick={handleOpen}>
               <IoMdMenu className="text-4xl" />
             </div>
           </div>
         </div>
       </div>
-      <ResponsiveMenu className='dark:bg-black' open={open} />
+      <ResponsiveMenu className='dark:bg-black' open={open}/>
     </div>
   );
 };

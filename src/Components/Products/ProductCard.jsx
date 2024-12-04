@@ -1,5 +1,5 @@
 import React from 'react'
-
+import Button from '../Shared/button.jsx'
 
 const ProductCard = ({data}) => {
   return (
@@ -7,15 +7,15 @@ const ProductCard = ({data}) => {
         <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5 place-items-center'>
             {/*card Section*/}
             {data.map((data)=>(
-                <div key={data.id}>
-                    <div className='relative'>
+                <div className = 'group' key={data.id}>
+                    <div className='relative space-y-3'>
                     <img src={data.img} alt="" 
                     className='h-[180px] w-[260px] object-cover rounded-md'
                     />
                     {/* hover buttom*/}
-                    <div className='absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 w-full
-                     text-center group-hover:backdrop-blur-sm'>
-                     {/* <Button text={"Agregar al Carrito"}  bgColor={"bg-primary"} textColor={"text-white"}/> */}
+                    <div className='hidden group-hover:flex absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 h-full w-full
+                     text-center group-hover:backdrop-blur-sm justify-center items-center duration-200'>
+                     <Button text={"Agregar al Carrito"}  bgColor={"bg-primary"} textColor={"text-white"}/>
                         
                     </div>
                 </div>
