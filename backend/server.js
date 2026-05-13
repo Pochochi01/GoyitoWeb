@@ -25,9 +25,10 @@ const userRoutes          = require('./routes/user.routes')
 const addressRoutes       = require('./routes/address.routes')
 const reviewRoutes        = require('./routes/review.routes')
 const settingsRoutes      = require('./routes/settings.routes')
+const paymentRoutes       = require('./routes/payment.routes')
 
 const app  = express()
-const PORT = process.env.PORT || 4000
+const PORT = process.env.PORT || 5001
 
 // ─── Middlewares globales ──────────────────────────────────────
 app.use(cors({
@@ -64,6 +65,7 @@ app.use('/api/users',          userRoutes)
 app.use('/api/addresses',      addressRoutes)
 app.use('/api/reviews',        reviewRoutes)
 app.use('/api/settings',       settingsRoutes)
+app.use('/api/payments',       paymentRoutes)
 
 // ─── Health check ─────────────────────────────────────────────
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', env: process.env.NODE_ENV }))
@@ -82,19 +84,6 @@ app.use(errorMiddleware)
 // ─── Start ────────────────────────────────────────────────────
 async function start() {
   await testConnection()
-
-  // Los módulos de pago usan ESM (import/export).
-  // import() dinámico permite cargarlos desde un entorno CommonJS.
-  // Si el proyecto migra a "type":"module", reemplazar por import estático.
-  try {
-    const { default: paymentRoutes } = await import('./routes/payment.routes.js')
-    app.use('/api/payments', paymentRoutes)
-    logger.info('💳 Módulo de pagos MercadoPago registrado en /api/payments')
-  } catch (err) {
-    logger.error('❌ Error al cargar el módulo de pagos:', err.message)
-    // No detener el servidor; el resto de la app funciona igual
-  }
-
   app.listen(PORT, () => logger.info(`🚀 Servidor corriendo en http://localhost:${PORT}`))
 }
 
