@@ -9,8 +9,10 @@ const PriceHistory = {
     return rows
   },
 
-  async create({ producto_id, precio, motivo, fecha }) {
-    const [r] = await pool.query(
+  // conn opcional: permite ejecutar dentro de una transacción existente
+  async create({ producto_id, precio, motivo, fecha }, conn) {
+    const db = conn || pool
+    const [r] = await db.query(
       'INSERT INTO price_history (producto_id, precio, motivo, fecha) VALUES (?,?,?,?)',
       [producto_id, precio, motivo || null, fecha]
     )
