@@ -1,6 +1,11 @@
 import api from '../axios'
 
-const BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'
+// Extrae el origen (scheme + host + port) de VITE_API_URL sin tocar el path.
+// .replace() simple falla cuando el subdominio contiene "api" (ej: //api.dominio.com).
+const _apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001/api'
+const BASE = (() => {
+  try { return new URL(_apiUrl).origin } catch { return 'http://localhost:5001' }
+})()
 
 const toUrl = (ruta) => ruta ? `${BASE}/${ruta}` : null
 
@@ -44,15 +49,17 @@ const productService = {
   },
 
   async create(formData) {
+    // Content-Type: undefined → axios no sobreescribe; el browser pone
+    // multipart/form-data; boundary=... automáticamente al detectar FormData.
     const { data } = await api.post('/products', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: { 'Content-Type': undefined },
     })
     return data
   },
 
   async update(id, formData) {
     const { data } = await api.patch(`/products/${id}`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: { 'Content-Type': undefined },
     })
     return data
   },
