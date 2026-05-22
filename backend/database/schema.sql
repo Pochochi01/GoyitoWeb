@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS stock_movements (
   usuario_id  INT         DEFAULT NULL,
   created_at  TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_mov_prod FOREIGN KEY (producto_id)
-    REFERENCES products(id) ON UPDATE CASCADE,
+    REFERENCES products(id) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT fk_mov_user FOREIGN KEY (usuario_id)
     REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE
 );
@@ -130,7 +130,7 @@ CREATE TABLE IF NOT EXISTS purchase_orders (
   total        DECIMAL(12,2) NOT NULL DEFAULT 0,
   created_at   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_po_supplier FOREIGN KEY (proveedor_id)
-    REFERENCES suppliers(id) ON UPDATE CASCADE
+    REFERENCES suppliers(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- ─────────────────────────────────────────────────────────────

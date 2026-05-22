@@ -98,8 +98,23 @@ const Product = {
     return rows.map(r => r.ruta)
   },
 
-  async delete(id) {
-    const [r] = await pool.query('DELETE FROM products WHERE id = ?', [id])
+  /**
+   * Elimina un producto y TODOS sus registros dependientes de forma definitiva.
+   *
+   * Orden de eliminación (cascada manejada desde el backend):
+   *   1. stock_movements  — FK fk_mov_prod no tiene ON DELETE en versiones antiguas de la BD
+   *   2. product_images   — se eliminan en el controlador (archivos físicos) + aquí en BD
+   *   3. products         — la BD hace CASCADE en: product_stock, price_history, cart_items
+   *
+   * Nota: purchase_order_items y sales_order_items usan SET NULL en producto_id,
+   *       por lo que conservan el historial con producto_id = NULL.
+   */
+  async delete(id, conn) {
+    const db = conn || pool
+    // Paso 1 — eliminar movimientos de stock (FK sin CASCADE en la BD original)
+    await db.query('DELETE FROM stock_movements WHERE producto_id = ?', [id])
+    // Paso 2 — eliminar el producto (el resto cae por ON DELETE CASCADE en la BD)
+    const [r] = await db.query('DELETE FROM products WHERE id = ?', [id])
     return r.affectedRows
   },
 

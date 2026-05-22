@@ -44,7 +44,6 @@ async function create(req, res, next) {
       return res.status(400).json({ message: 'titulo, precio y categoria_id son requeridos' })
     }
 
-    // Imagen principal
     let imagen = null
     const files = req.files || {}
     if (files.imagen?.[0]) {
@@ -54,7 +53,6 @@ async function create(req, res, next) {
     const productId = await Product.create({ titulo, precio, descuento, categoria_id, imagen, descripcion, barcode: barcode || null }, conn)
     await ProductStock.upsert({ producto_id: productId, stock, stock_minimo, ubicacion, costo }, conn)
 
-    // Imágenes adicionales (hasta 4)
     if (files.imagenes_extra?.length) {
       const rutas = await Promise.all(
         files.imagenes_extra.map(f => saveWebP(f.buffer, f.originalname))
@@ -84,13 +82,11 @@ async function update(req, res, next) {
     const fields = { ...req.body }
     const files  = req.files || {}
 
-    // Imagen principal
     if (files.imagen?.[0]) {
       deleteImage(product.imagen)
       fields.imagen = await saveWebP(files.imagen[0].buffer, files.imagen[0].originalname)
     }
 
-    // Historial de precio
     if (fields.precio && +fields.precio !== +product.precio) {
       await PriceHistory.create({
         producto_id: id,
@@ -102,7 +98,6 @@ async function update(req, res, next) {
 
     await Product.update(id, fields)
 
-    // Stock
     if (fields.stock !== undefined || fields.stock_minimo !== undefined ||
         fields.ubicacion !== undefined || fields.costo !== undefined) {
       await ProductStock.upsert({
@@ -114,7 +109,6 @@ async function update(req, res, next) {
       }, conn)
     }
 
-    // Imágenes adicionales: reemplaza las existentes si se envían nuevas
     if (files.imagenes_extra?.length) {
       const oldRutas = await Product.deleteImages(id, conn)
       oldRutas.forEach(r => deleteImage(r))
@@ -134,16 +128,44 @@ async function update(req, res, next) {
   }
 }
 
+/**
+ * Elimina un producto de forma definitiva.
+ *
+ * Cascada manejada desde el backend (ver Product.delete):
+ *   · stock_movements   → DELETE explícito antes del producto
+ *   · product_images    → archivos físicos + BD antes del producto
+ *   · product_stock     → ON DELETE CASCADE en la BD
+ *   · price_history     → ON DELETE CASCADE en la BD
+ *   · cart_items        → ON DELETE CASCADE en la BD
+ *   · sales_order_items / purchase_order_items → SET NULL en producto_id
+ */
 async function remove(req, res, next) {
+  const conn = await pool.getConnection()
   try {
+    await conn.beginTransaction()
+
     const id = +req.params.id
     const product = await Product.findById(id)
     if (!product) return res.status(404).json({ message: 'Producto no encontrado' })
+
+    // Eliminar archivos físicos de imágenes adicionales
+    const extraRutas = await Product.deleteImages(id, conn)
+    extraRutas.forEach(ruta => deleteImage(ruta))
+
+    // Eliminar imagen principal del sistema de archivos
     deleteImage(product.imagen)
-    // product_images se borra en cascada por FK
-    await Product.delete(id)
+
+    // Eliminar el producto y sus dependencias (Product.delete maneja stock_movements)
+    await Product.delete(id, conn)
+
+    await conn.commit()
     res.json({ message: 'Producto eliminado' })
-  } catch (err) { next(err) }
+  } catch (err) {
+    await conn.rollback()
+    next(err)
+  } finally {
+    conn.release()
+  }
 }
 
 async function priceHistory(req, res, next) {
