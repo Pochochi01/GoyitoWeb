@@ -39,8 +39,18 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser(process.env.COOKIE_SECRET))
 
-// ─── Archivos estáticos ────────────────────────────────────────
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
+// ─── Archivos estáticos — uploads ─────────────────────────────
+// Sirve imágenes subidas por el admin. En producción nginx las sirve
+// directo del disco (ver nginx/api.zolimportados.com.conf), pero este
+// middleware actúa como fallback y para desarrollo local.
+app.use('/uploads', (req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Cache-Control', 'public, max-age=15552000')
+  next()
+}, express.static(path.join(__dirname, 'uploads'), { fallthrough: false }))
+
+// Si el archivo no existe devuelve 404 explícito (no deja caer al SPA fallback)
+app.use('/uploads', (_req, res) => res.status(404).json({ message: 'Imagen no encontrada' }))
 
 // En producción Nginx sirve el frontend directamente.
 // Este bloque es un fallback por si el backend corre sin Nginx.
