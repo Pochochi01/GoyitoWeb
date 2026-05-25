@@ -32,7 +32,9 @@ const PORT = process.env.PORT || 5001
 
 // ─── Middlewares globales ──────────────────────────────────────
 app.use(cors({
-  origin:      process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+  origin: ['https://zolimportados.com', 'https://www.zolimportados.com','https://api.zolimportados.com',],
+//  methods: ['GET','POST','PUT','DELETE'],
+//  allowedHeaders: ['Content-Type','Authorization'],
   credentials: true,
 }))
 app.use(express.json())
