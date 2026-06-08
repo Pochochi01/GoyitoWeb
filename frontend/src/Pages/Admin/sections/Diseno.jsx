@@ -303,6 +303,13 @@ function CategoryEditor() {
         </div>
       </div>
 
+      {/* Aviso: las cards ahora se gestionan en el módulo Categorías */}
+      <div className="mb-4 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-xs text-blue-700 dark:text-blue-300">
+        💡 Las tarjetas de categorías (imagen, nombre, etc.) se gestionan desde
+        el módulo <strong>Categorías</strong> del panel. Acá editás únicamente
+        el encabezado de la sección (etiqueta, título y descripción).
+      </div>
+
       {/* Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {cat.cards.map((card, idx) => (

@@ -31,10 +31,16 @@ const app  = express()
 const PORT = process.env.PORT || 5001
 
 // ─── Middlewares globales ──────────────────────────────────────
+// CORS — orígenes permitidos. Se leen de CLIENT_ORIGIN (lista separada por comas).
+//   Dev:  CLIENT_ORIGIN=http://localhost:5173
+//   Prod: CLIENT_ORIGIN=https://zolimportados.com,https://www.zolimportados.com
+// Sin `methods` ni `allowedHeaders`: la librería usa defaults sensatos
+// (GET, HEAD, PUT, PATCH, POST, DELETE — y refleja los headers que pide el cliente).
+const allowedOrigins = (process.env.CLIENT_ORIGIN || 'http://localhost:5173')
+  .split(',').map(s => s.trim()).filter(Boolean)
+
 app.use(cors({
-  origin: ['https://zolimportados.com', 'https://www.zolimportados.com','https://api.zolimportados.com',],
-//  methods: ['GET','POST','PUT','DELETE'],
-//  allowedHeaders: ['Content-Type','Authorization'],
+  origin:      allowedOrigins,
   credentials: true,
 }))
 app.use(express.json())

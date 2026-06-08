@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import NavBar from '../Components/NavBar/NavBar.jsx'
 import Footer from '../Components/Footer/Footer.jsx'
 import Popup from '../Components/Popup/Popup.jsx'
@@ -17,9 +18,12 @@ const SORT_OPTIONS = [
 ]
 
 const Tienda = ({ handleOrderPopup, orderPopup, setOrderPopup }) => {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const initialCat = searchParams.get('categoria') || 'Todos'
+
   const [products,        setProducts]        = useState([])
   const [categories,      setCategories]      = useState(['Todos'])
-  const [activeCategory,  setActiveCategory]  = useState('Todos')
+  const [activeCategory,  setActiveCategory]  = useState(initialCat)
   const [sortBy,          setSortBy]          = useState('default')
   const [onlyOffers,      setOnlyOffers]      = useState(false)
   const [sortOpen,        setSortOpen]        = useState(false)
@@ -36,9 +40,25 @@ const Tienda = ({ handleOrderPopup, orderPopup, setOrderPopup }) => {
       categoryService.getAll(),
     ]).then(([prod, cats]) => {
       setProducts(prod.data)
-      setCategories(['Todos', ...cats.map((c) => c.nombre)])
+      const nombres = cats.map((c) => c.nombre)
+      setCategories(['Todos', ...nombres])
+      // Si el query param trae una categoría que ya no existe → volver a "Todos"
+      if (initialCat !== 'Todos' && !nombres.includes(initialCat)) {
+        setActiveCategory('Todos')
+      }
     }).catch(console.error).finally(() => setLoading(false))
-  }, [])
+  }, [])  // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sincroniza el filtro activo con la URL (sin recargar la página).
+  const handleSetCategory = (cat) => {
+    setActiveCategory(cat)
+    if (cat === 'Todos') {
+      searchParams.delete('categoria')
+    } else {
+      searchParams.set('categoria', cat)
+    }
+    setSearchParams(searchParams, { replace: true })
+  }
 
   const filteredProducts = useMemo(() => {
     let result = [...products]
@@ -110,7 +130,7 @@ const Tienda = ({ handleOrderPopup, orderPopup, setOrderPopup }) => {
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-8">
               <div className="flex flex-wrap gap-2">
                 {categories.map(cat => (
-                  <button key={cat} onClick={() => setActiveCategory(cat)}
+                  <button key={cat} onClick={() => handleSetCategory(cat)}
                     className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-all duration-200
                       ${activeCategory === cat
                         ? 'bg-primary text-white border-primary shadow-md'
@@ -174,7 +194,7 @@ const Tienda = ({ handleOrderPopup, orderPopup, setOrderPopup }) => {
                   <div className="text-center py-20 text-gray-400">
                     <p className="text-5xl mb-4">🔍</p>
                     <p className="text-lg font-semibold">No hay productos con estos filtros</p>
-                    <button onClick={() => { setActiveCategory('Todos'); setOnlyOffers(false) }}
+                    <button onClick={() => { handleSetCategory('Todos'); setOnlyOffers(false) }}
                       className="mt-4 text-primary underline text-sm">
                       Limpiar filtros
                     </button>

@@ -25,7 +25,7 @@ const ProductCardItem = ({ item }) => {
   }
 
   return (
-    <div className='group' key={item.id}>
+    <div className='group'>
       <div className='relative space-y-3'>
         <img
           src={item.img}

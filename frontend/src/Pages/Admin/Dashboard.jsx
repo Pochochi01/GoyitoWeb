@@ -3,12 +3,13 @@ import { Link, useNavigate } from 'react-router-dom'
 import {
   FiLayout, FiPackage, FiShoppingBag, FiLogOut,
   FiMenu, FiX, FiHome, FiChevronRight,
-  FiTrendingUp, FiShoppingCart, FiMonitor, FiUsers, FiStar,
+  FiTrendingUp, FiShoppingCart, FiMonitor, FiUsers, FiStar, FiTag,
 } from 'react-icons/fi'
 import { useAuth }       from '../../context/AuthContext.jsx'
 import DarkMode          from '../../Components/NavBar/DarkMode.jsx'
 import Diseno            from './sections/Diseno.jsx'
 import ProductosModule   from './sections/productos/ProductosModule.jsx'
+import CategoriasModule  from './sections/categorias/CategoriasModule.jsx'
 import ComprasModule     from './sections/compras/ComprasModule.jsx'
 import VentasModule      from './sections/ventas/VentasModule.jsx'
 import UsuariosModule        from './sections/UsuariosModule.jsx'
@@ -23,6 +24,7 @@ import CalificacionesModule from './sections/CalificacionesModule.jsx'
 const ALL_NAV_ITEMS = [
   { id: 'ventas',    label: 'Ventas',    icon: <FiTrendingUp  size={18}/>, roles: ['admin', 'admin_complejo'] },
   { id: 'productos', label: 'Productos', icon: <FiPackage     size={18}/>, roles: ['admin', 'admin_complejo'] },
+  { id: 'categorias', label: 'Categorías', icon: <FiTag       size={18}/>, roles: ['admin', 'admin_complejo'] },
   { id: 'compras',   label: 'Compras',   icon: <FiShoppingCart size={18}/>, roles: ['admin', 'admin_complejo'] },
   { id: 'calificaciones', label: 'Calificaciones', icon: <FiStar size={18}/>, roles: ['admin', 'admin_complejo'] },
   { id: 'usuarios',  label: 'Usuarios',  icon: <FiUsers       size={18}/>, roles: ['admin'] },
@@ -148,6 +150,7 @@ const Dashboard = () => {
         <main className="flex-1 overflow-y-auto p-5 lg:p-7">
           {activeSection === 'ventas'    && <VentasModule />}
           {activeSection === 'productos' && <ProductosModule />}
+          {activeSection === 'categorias'&& <CategoriasModule />}
           {activeSection === 'compras'   && <ComprasModule />}
           {activeSection === 'calificaciones' && <CalificacionesModule />}
           {activeSection === 'usuarios'  && <UsuariosModule />}

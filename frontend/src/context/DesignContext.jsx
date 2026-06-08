@@ -36,21 +36,16 @@ export const DEFAULT_DESIGN = {
   },
 
   category: {
+    // El header se sigue editando desde el módulo "Diseño" del admin.
     header: {
       tag:   'Nuestra Selección de Productos para ti',
       title: 'Productos',
       desc:  'Los productos más adquiridos para usar en casa o al aire libre.',
     },
-    // Cada card: { id, line1, line2, name, imageUrl }
-    // imageUrl = null → Category.jsx usa el asset importado por defecto
-    cards: [
-      { id: 1, line1: 'Disfruta', line2: 'Con', name: 'Auriculares', imageUrl: null },
-      { id: 2, line1: 'Disfruta', line2: 'Con', name: 'SmartWatch',  imageUrl: null },
-      { id: 3, line1: 'Disfruta', line2: 'Con', name: 'Parlantes',   imageUrl: null },
-      { id: 4, line1: 'Disfruta', line2: 'Con', name: 'PlayStation', imageUrl: null },
-      { id: 5, line1: 'Disfruta', line2: 'Con', name: 'Laptop',      imageUrl: null },
-      { id: 6, line1: 'Disfruta', line2: 'Con', name: 'SmartWatch',  imageUrl: null },
-    ],
+    // Las tarjetas de categorías ahora se gestionan desde el módulo
+    // "Categorías" del admin (CRUD contra la API). Este array queda
+    // vacío y se mantiene únicamente por compatibilidad con el editor.
+    cards: [],
   },
 
   // Cada service: { id, icon, title, description }
