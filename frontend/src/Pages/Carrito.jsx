@@ -48,7 +48,7 @@ function PaymentMethodSelector({ selected, onChange }) {
             key={m.id}
             type="button"
             onClick={() => onChange(m.id)}
-            className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all duration-200 text-center
+            className={`flex flex-col items-center justify-center gap-1.5 p-4 min-h-[96px] rounded-xl border-2 transition-all duration-200 text-center
               ${selected === m.id ? `${m.color} ${m.active}` : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'}`}
           >
             <span className="text-2xl">{m.icon}</span>
@@ -338,8 +338,8 @@ const Carrito = () => {
               </div>
 
               {/* ── Panel de pago ── */}
-              <div className="lg:w-80 flex-shrink-0">
-                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6 sticky top-24 flex flex-col gap-4">
+              <div className="w-full lg:w-80 lg:flex-shrink-0">
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-4 sm:p-6 lg:sticky lg:top-24 flex flex-col gap-4">
                   <h2 className="text-lg font-bold text-gray-800 dark:text-white">Resumen del pedido</h2>
 
                   {/* Totales */}

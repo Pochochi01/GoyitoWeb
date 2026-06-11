@@ -25,13 +25,14 @@ const ProductCardItem = ({ item }) => {
   }
 
   return (
-    <div className='group'>
+    <div className='group w-full max-w-[260px] mx-auto'>
       <div className='relative space-y-3'>
         <img
           src={item.img}
           alt={item.title}
-          className='h-[180px] w-[260px] object-cover rounded-md'
+          className='w-full aspect-[260/180] object-cover rounded-md'
         />
+        {/* Overlay táctil: en mobile siempre visible al tocar, en desktop solo hover */}
         <div
           className='hidden group-hover:flex absolute top-1/2 -translate-y-1/2 left-1/2
                      -translate-x-1/2 h-full w-full text-center group-hover:backdrop-blur-sm
@@ -39,8 +40,9 @@ const ProductCardItem = ({ item }) => {
         >
           <button
             onClick={handleAdd}
-            className={`cursor-pointer hover:scale-105 duration-300 py-2 px-8 rounded-full
-                        relative z-10 font-semibold text-white
+            className={`cursor-pointer hover:scale-105 duration-300 py-2 px-6 sm:px-8 rounded-full
+                        relative z-10 font-semibold text-white text-sm sm:text-base
+                        min-h-[44px]
                         ${added ? 'bg-green-500' : 'bg-primary'}`}
           >
             {added ? '¡Agregado!' : 'Agregar al Carrito'}
@@ -48,7 +50,7 @@ const ProductCardItem = ({ item }) => {
         </div>
       </div>
       <div className='leading-7'>
-        <h2 className='font-semibold'>{item.title}</h2>
+        <h2 className='font-semibold text-base sm:text-lg'>{item.title}</h2>
         <h2 className='font-bold'>${item.price}</h2>
       </div>
     </div>

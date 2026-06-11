@@ -29,36 +29,45 @@ import categoryService from '../../api/services/categoryService'
 const DEFAULT_IMGS = [earphone, watch, speaker, gaming, macbook, smartwatch2]
 
 // Estilo visual fijo por posición (gradiente + ubicación de imagen + colores de botón)
+// Las imágenes usan tamaños responsivos: w-[Xpx] como base mobile chico,
+// sm:w-[Ypx] para tablet, lg:w-[Zpx] para desktop. Esto evita que se desborden.
 const CARD_STYLES = [
-  { gradient: 'from-black/90 to-white/50',           imgClass: 'w-[150px] h-[200px] absolute top-0 left-14 rotate-180 sm:left-24 lg:h-[200px] lg:w-[200px] lg:left-40', btnBg: 'bg-primary',  btnTxt: 'text-white'       },
-  { gradient: 'from-brandYellow to-brandYellow/70',  imgClass: 'w-[200px] h-[200px] absolute top-[0px] -right-8 lg:top-[4px] sm:top-[4px] lg:h-[210px] lg:w-[210px]', btnBg: 'bg-white',   btnTxt: 'text-brandYellow' },
-  { gradient: 'from-primary to-primary/70',          imgClass: 'w-[320px] absolute top-1/2 -translate-y-1/2 -right-0',                                                    btnBg: 'bg-white',   btnTxt: 'text-primary'     },
-  { gradient: 'from-gray-400 to-gray-200',           imgClass: 'w-[220px] absolute top-1/2 -translate-y-1/2 right-2',                                                     btnBg: 'bg-primary',  btnTxt: 'text-white'       },
-  { gradient: 'from-brandGreen to-brandGreen/70',    imgClass: 'w-[170px] h-[170px] absolute top-[0px] -right-2 lg:top-[4px] sm:top-[4px] lg:h-[220px] lg:w-[220px]',  btnBg: 'bg-white',   btnTxt: 'text-brandGreen'  },
-  { gradient: 'from-brandBlue to-brandBlue/50',      imgClass: 'w-[150px] h-[150px] absolute top-[0px] -right-2 lg:top-[4px] sm:top-[4px] lg:w-[200px] lg:h-[200px]',  btnBg: 'bg-white',   btnTxt: 'text-brandBlue'   },
+  { gradient: 'from-black/90 to-white/50',           imgClass: 'w-[120px] h-[160px] sm:w-[150px] sm:h-[200px] lg:w-[200px] lg:h-[200px] absolute top-2 right-2 sm:left-24 sm:right-auto lg:left-40 rotate-180',          btnBg: 'bg-primary',  btnTxt: 'text-white'       },
+  { gradient: 'from-brandYellow to-brandYellow/70',  imgClass: 'w-[140px] h-[140px] sm:w-[200px] sm:h-[200px] lg:w-[210px] lg:h-[210px] absolute top-2 -right-4 sm:top-[4px] sm:-right-8',                              btnBg: 'bg-white',   btnTxt: 'text-brandYellow' },
+  { gradient: 'from-primary to-primary/70',          imgClass: 'w-[180px] sm:w-[260px] lg:w-[320px] h-auto absolute top-1/2 -translate-y-1/2 -right-4 sm:right-0',                                                       btnBg: 'bg-white',   btnTxt: 'text-primary'     },
+  { gradient: 'from-gray-400 to-gray-200',           imgClass: 'w-[160px] sm:w-[200px] lg:w-[220px] h-auto absolute top-1/2 -translate-y-1/2 right-2',                                                                    btnBg: 'bg-primary',  btnTxt: 'text-white'       },
+  { gradient: 'from-brandGreen to-brandGreen/70',    imgClass: 'w-[130px] h-[130px] sm:w-[170px] sm:h-[170px] lg:w-[220px] lg:h-[220px] absolute top-2 -right-2 sm:top-[4px]',                                           btnBg: 'bg-white',   btnTxt: 'text-brandGreen'  },
+  { gradient: 'from-brandBlue to-brandBlue/50',      imgClass: 'w-[120px] h-[120px] sm:w-[150px] sm:h-[150px] lg:w-[200px] lg:h-[200px] absolute top-2 -right-2 sm:top-[4px]',                                           btnBg: 'bg-white',   btnTxt: 'text-brandBlue'   },
 ]
 
 const CategoryCard = ({ category, style, defaultImg, span = 1 }) => {
+  // En mobile (< sm) NO se aplica col-span-2 — todas las cards ocupan ancho completo.
+  // El doble ancho solo importa cuando hay grid de 3+ columnas.
+  const spanCls = span === 2 ? 'sm:col-span-2' : ''
   if (!category) {
     return (
-      <div className={`${span === 2 ? 'col-span-2' : ''} rounded-3xl h-[320px] bg-gray-100 dark:bg-gray-800/40 border border-dashed border-gray-200 dark:border-gray-700`}/>
+      <div className={`${spanCls} rounded-2xl sm:rounded-3xl h-[220px] sm:h-[280px] lg:h-[320px] bg-gray-100 dark:bg-gray-800/40 border border-dashed border-gray-200 dark:border-gray-700`}/>
     )
   }
   const imgSrc = category.imagenUrl || defaultImg
   const target = `/tienda?categoria=${encodeURIComponent(category.nombre)}`
   return (
-    <div className={`${span === 2 ? 'col-span-2' : ''} py-10 pl-2 sm:pl-5
-      bg-gradient-to-br ${style.gradient} text-white rounded-3xl relative h-[320px] flex items-end overflow-hidden`}>
-      <div className="mb-4 sm:pl-2 max-w-[60%]">
-        <p className="mb-[2px] text-gray-200 text-sm">Disfruta</p>
-        <p className="text-2xl font-semibold mb-[2px]">Con</p>
-        <p className="text-3xl xl:text-4xl font-bold opacity-30 mb-4 relative z-10 line-clamp-2">{category.nombre}</p>
+    <div className={`${spanCls} py-6 sm:py-10 pl-3 sm:pl-5
+      bg-gradient-to-br ${style.gradient} text-white rounded-2xl sm:rounded-3xl relative
+      h-[220px] sm:h-[280px] lg:h-[320px]
+      flex items-end overflow-hidden`}>
+      <div className="mb-2 sm:mb-4 sm:pl-2 max-w-[55%] sm:max-w-[60%]">
+        <p className="mb-[2px] text-gray-200 text-xs sm:text-sm">Disfruta</p>
+        <p className="text-lg sm:text-2xl font-semibold mb-[2px]">Con</p>
+        <p className="text-xl sm:text-3xl xl:text-4xl font-bold opacity-30 mb-3 sm:mb-4 relative z-10 line-clamp-2 break-words">{category.nombre}</p>
         <Link to={target}
-          className={`${style.btnBg} ${style.btnTxt} inline-block cursor-pointer hover:scale-105 duration-300 py-2 px-8 rounded-full relative z-10 text-sm font-semibold`}>
+          className={`${style.btnBg} ${style.btnTxt} inline-flex items-center cursor-pointer hover:scale-105 duration-300
+            py-2 px-5 sm:px-8 rounded-full relative z-10 text-xs sm:text-sm font-semibold
+            min-h-[40px] sm:min-h-[44px]`}>
           Ver
         </Link>
       </div>
-      <img src={imgSrc} alt={category.nombre} className={style.imgClass}/>
+      <img src={imgSrc} alt={category.nombre} className={`${style.imgClass} object-contain pointer-events-none`}/>
     </div>
   )
 }

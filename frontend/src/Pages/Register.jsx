@@ -132,8 +132,8 @@ const Register = () => {
                 </div>
               </div>
 
-              {/* Contraseña + Confirmar */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* Contraseña + Confirmar — stack en mobile, lado a lado en sm+ */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
                     Contraseña

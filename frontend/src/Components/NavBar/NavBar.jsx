@@ -21,20 +21,22 @@ const NavBar = ({ handleOrderPopup }) => {
   return (
     <div className="bg-white dark:bg-gray-900 duration-200 relative z-40">
       <div className="py-4">
-        {/* Tres columnas: logo | nav centrado | acciones */}
-        <div className="container grid grid-cols-3 items-center">
+        {/* Tres columnas: logo | nav centrado | acciones
+            En mobile el grid sigue siendo 3 cols pero el logo ocupa menos espacio
+            porque el texto "ZolImportados" se oculta hasta sm. */}
+        <div className="container grid grid-cols-3 items-center px-4 sm:px-6 lg:px-0 gap-2">
 
           {/* ── Columna izquierda: logo + nombre ── */}
-          <div className="flex items-center gap-2">
-            <Link to="/" aria-label="Inicio — ZolImportados" className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-200">
+          <div className="flex items-center gap-2 min-w-0">
+            <Link to="/" aria-label="Inicio — ZolImportados" className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-200 min-w-0">
               <img
                 src={logo}
                 alt="ZolImportados"
-                className="h-16 w-auto object-contain
+                className="h-12 sm:h-16 w-auto object-contain flex-shrink-0
                            mix-blend-multiply
                            dark:invert dark:mix-blend-normal"
               />
-              <span className="text-primary font-semibold tracking-widest text-2xl uppercase sm:text-3xl hidden sm:block">
+              <span className="text-primary font-semibold tracking-widest text-2xl uppercase sm:text-3xl hidden sm:block truncate">
                 ZolImportados
               </span>
             </Link>
