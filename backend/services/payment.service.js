@@ -54,6 +54,7 @@ class PaymentService {
     notificationUrl   = DEFAULT_NOTIFICATION_URL,
     statementDescriptor = 'ZOLIMPORTADOS',
     expirationMinutes = 0,
+    metadata          = undefined,
   }) {
     if (!Array.isArray(items) || items.length === 0)
       throw new Error("'items' debe ser un array con al menos un elemento")
@@ -82,6 +83,7 @@ class PaymentService {
       auto_return: autoReturn,
       ...(notificationUrl && { notification_url: notificationUrl }),
       statement_descriptor: statementDescriptor,
+      ...(metadata && { metadata }),
       ...(expirationMinutes > 0 && {
         expires: true,
         expiration_date_from: new Date().toISOString(),

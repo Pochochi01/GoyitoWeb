@@ -8,6 +8,9 @@ const optionalAuth = require('../middlewares/optionalAuth')
 // POST /api/payments/create-preference
 router.post('/create-preference', optionalAuth, ctrl.createPreference)
 
+// POST /api/payments/init-mp  (nuevo flujo — no crea orden hasta confirmar pago)
+router.post('/init-mp', optionalAuth, ctrl.initMP)
+
 // GET /api/payments/preference/:id  (admin / pos)
 router.get(
   '/preference/:id',

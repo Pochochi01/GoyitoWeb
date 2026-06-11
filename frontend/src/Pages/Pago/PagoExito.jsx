@@ -34,13 +34,20 @@ export default function PagoExito() {
   // Estado real devuelto por el backend tras consultar a MP.
   // Es la fuente de verdad para `isApproved` — los query params se pueden falsificar.
   const [syncedStatus, setSyncedStatus] = useState(null)
+  // orderId devuelto por el sync (la orden se crea recién cuando MP aprueba).
+  // Si el flujo viejo aún se usara, también se llena con external_reference.
+  const [resolvedOrderId, setResolvedOrderId] = useState(null)
 
   // Parámetros enviados por MercadoPago
   const mpStatus      = params.get('status')             // approved / in_process
   const collStatus    = params.get('collection_status')  // approved / pending
   const paymentId     = params.get('payment_id') || params.get('collection_id')
-  const orderId       = params.get('external_reference') // nuestro ID de orden
+  const externalRef   = params.get('external_reference') // legacy: orderId previo
   const preferenceId  = params.get('preference_id')
+
+  // El orderId mostrado: prioridad al que devolvió el sync (orden recién creada).
+  // Si todavía no llegó, usamos external_reference (compatibilidad).
+  const orderId = resolvedOrderId ?? externalRef
 
   // El estado mostrado se basa en lo que devolvió el backend tras consultar MP.
   // Si aún no se sincronizó, caemos al status de los query params para no quedar
@@ -54,20 +61,21 @@ export default function PagoExito() {
     sessionStorage.removeItem('mp_pending_order')
   }, [])
 
-  // Verificar el pago contra MercadoPago y actualizar el estado de la orden.
-  // Esto fuerza la transición "Pendiente → Pagada" cuando MP ya aprobó el pago,
-  // sin depender del webhook (útil en dev y como fallback en prod).
+  // Verificar el pago contra MP. El backend:
+  //  · Si la orden ya existe → solo actualiza estado.
+  //  · Si no existe y MP aprobó → crea la orden ahora y devuelve el orderId.
   useEffect(() => {
     if (!paymentId) return
     paymentService.sync(paymentId)
       .then(res => {
         if (res?.mpStatus) setSyncedStatus(res.mpStatus)
+        if (res?.orderId)  setResolvedOrderId(res.orderId)
       })
       .catch(() => { /* el backend ya logueó el error; el usuario ve el estado de los params */ })
   }, [paymentId])
 
   // Cargar detalle de la orden si el usuario está logueado.
-  // Se relanza cuando syncedStatus cambia, para mostrar el estado actualizado.
+  // Se relanza cuando resolvedOrderId cambia (la orden recién se creó).
   useEffect(() => {
     if (!orderId || !user) return
     setLoadingO(true)
@@ -75,7 +83,7 @@ export default function PagoExito() {
       .then(setOrder)
       .catch(() => setOrder(null))
       .finally(() => setLoadingO(false))
-  }, [orderId, user, syncedStatus])
+  }, [orderId, user])
 
   return (
     <div className="bg-white dark:bg-gray-900 min-h-screen flex flex-col">

@@ -52,12 +52,12 @@ const SalesOrder = {
     return { ...rows[0], items }
   },
 
-  async create({ fecha, canal, cliente_id, operador_id, estado, metodo_pago, total, items }, conn) {
+  async create({ fecha, canal, cliente_id, operador_id, estado, metodo_pago, total, items, mp_payment_id = null }, conn) {
     const db = conn || pool
     const [r] = await db.query(
-      `INSERT INTO sales_orders (fecha, canal, cliente_id, operador_id, estado, metodo_pago, total)
-       VALUES (?,?,?,?,?,?,?)`,
-      [fecha, canal, cliente_id || null, operador_id || null, estado || 'Pendiente', metodo_pago, total]
+      `INSERT INTO sales_orders (fecha, canal, cliente_id, operador_id, estado, metodo_pago, mp_payment_id, total)
+       VALUES (?,?,?,?,?,?,?,?)`,
+      [fecha, canal, cliente_id || null, operador_id || null, estado || 'Pendiente', metodo_pago, mp_payment_id, total]
     )
     const orderId = r.insertId
     if (items?.length) {
@@ -68,6 +68,15 @@ const SalesOrder = {
       )
     }
     return orderId
+  },
+
+  async findByMpPaymentId(paymentId) {
+    if (!paymentId) return null
+    const [rows] = await pool.query(
+      'SELECT * FROM sales_orders WHERE mp_payment_id = ? LIMIT 1',
+      [String(paymentId)]
+    )
+    return rows[0] || null
   },
 
   async updateEstado(id, estado) {

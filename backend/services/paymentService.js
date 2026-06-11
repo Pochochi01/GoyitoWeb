@@ -10,6 +10,7 @@ async function createPreference(orderData) {
     externalReference: orderData.external_reference,
     backUrls:          orderData.back_urls,
     notificationUrl:   orderData.notification_url,
+    metadata:          orderData.metadata,
   })
   return {
     id:                 result.id,

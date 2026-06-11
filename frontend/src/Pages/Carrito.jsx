@@ -6,9 +6,10 @@ import CartItem  from '../Components/Cart/CartItem.jsx'
 import { useCart } from '../context/CartContext.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import salesOrderService from '../api/services/salesOrderService'
+import paymentService    from '../api/services/paymentService'
 import {
   FiShoppingBag, FiTrash2, FiCheckCircle, FiAlertCircle,
-  FiPackage, FiCalendar, FiUser, FiCreditCard,
+  FiPackage, FiCalendar, FiUser, FiCreditCard, FiX,
 } from 'react-icons/fi'
 import { FaCartShopping } from 'react-icons/fa6'
 
@@ -172,6 +173,80 @@ function ConfirmacionEfectivo({ orderDone, cartSnapshot }) {
   )
 }
 
+// ─── Modal de confirmación previa al checkout ─────────────────
+function ConfirmCheckoutModal({ open, onClose, onConfirm, items, total, shipping, metodoPago, loading, error }) {
+  if (!open) return null
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800">
+          <h3 className="font-bold text-gray-800 dark:text-white">Confirmar pedido</h3>
+          <button onClick={onClose} disabled={loading} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 disabled:opacity-40">
+            <FiX size={20}/>
+          </button>
+        </div>
+
+        <div className="p-5 flex flex-col gap-4">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            {metodoPago === 'MercadoPago'
+              ? 'Vas a ser redirigido a MercadoPago para completar el pago. La orden se registrará automáticamente una vez que el pago se apruebe.'
+              : 'Al confirmar, se registrará tu pedido y nos pondremos en contacto para coordinar la entrega y el pago en efectivo.'}
+          </p>
+
+          {/* Resumen de items */}
+          <div className="bg-gray-50 dark:bg-gray-700/30 rounded-xl divide-y divide-gray-100 dark:divide-gray-700 max-h-48 overflow-y-auto">
+            {items.map((it, i) => (
+              <div key={i} className="flex justify-between items-center px-3 py-2 text-sm">
+                <div className="flex-1 min-w-0 pr-2">
+                  <p className="font-semibold text-gray-800 dark:text-white truncate">{it.nombre_producto}</p>
+                  <p className="text-xs text-gray-400">x{it.cantidad} · ${it.precio_unit.toLocaleString()} c/u</p>
+                </div>
+                <span className="font-bold text-gray-800 dark:text-white whitespace-nowrap">
+                  ${(it.precio_unit * it.cantidad).toLocaleString()}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Totales */}
+          <div className="flex flex-col gap-1 text-sm">
+            {shipping > 0 && (
+              <div className="flex justify-between text-gray-500">
+                <span>Envío</span><span>${shipping.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="flex justify-between font-bold text-base pt-2 border-t border-gray-100 dark:border-gray-700">
+              <span className="text-gray-800 dark:text-white">Total</span>
+              <span className="text-primary">${total.toFixed(2)}</span>
+            </div>
+          </div>
+
+          {error && (
+            <div className="flex items-start gap-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-3 py-2.5">
+              <FiAlertCircle className="text-red-500 flex-shrink-0 mt-0.5" size={14}/>
+              <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose} disabled={loading}
+              className="flex-1 py-2.5 rounded-full border border-gray-200 dark:border-gray-600 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-40 min-h-[44px]">
+              Cancelar
+            </button>
+            <button type="button" onClick={onConfirm} disabled={loading}
+              className={`flex-1 py-2.5 rounded-full text-white text-sm font-semibold disabled:opacity-60 flex items-center justify-center gap-2 transition-colors min-h-[44px]
+                ${metodoPago === 'MercadoPago' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-primary hover:bg-red-600'}`}>
+              {loading
+                ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
+                : metodoPago === 'MercadoPago' ? 'Continuar a MercadoPago' : 'Confirmar pedido'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Componente principal ─────────────────────────────────────
 const Carrito = () => {
   const { cart, clearCart, cartTotal } = useCart()
@@ -183,43 +258,51 @@ const Carrito = () => {
   const [error,        setError]        = useState('')
   const [orderDone,    setOrderDone]    = useState(null)
   const [cartSnapshot, setCartSnapshot] = useState([])
+  const [confirmOpen,  setConfirmOpen]  = useState(false)
 
   const shipping = cartTotal > 0 && cartTotal < 500 ? 15 : 0
   const total    = cartTotal + shipping
 
-  const handleCheckout = async () => {
+  // Items normalizados para mostrar en el modal y mandar al backend
+  const itemsPayload = cart.map(item => ({
+    producto_id:     item.id,
+    nombre_producto: item.title,
+    cantidad:        item.quantity,
+    precio_unit:     unitPrice(item),
+  }))
+
+  // Abre el modal de confirmación. La orden NO se crea hasta confirmar.
+  const handleCheckoutClick = () => {
     if (!user) {
       navigate('/login', { state: { from: '/carrito' } })
       return
     }
     if (!cart.length) return
+    setError('')
+    setConfirmOpen(true)
+  }
 
-    const snapshot = [...cart]
-    setCartSnapshot(snapshot)
+  // Confirmado por el usuario → procesar según método de pago.
+  const handleConfirm = async () => {
     setChecking(true)
     setError('')
 
-    const items = snapshot.map(item => ({
-      producto_id:     item.id,
-      nombre_producto: item.title,
-      cantidad:        item.quantity,
-      precio_unit:     unitPrice(item),
-    }))
+    const snapshot = [...cart]
+    setCartSnapshot(snapshot)
 
     try {
       if (metodoPago === 'MercadoPago') {
-        // ── Checkout con MercadoPago ──────────────────────
-        const result = await salesOrderService.checkoutWithMP({
-          items,
+        // ── Flujo MP: solo iniciamos la preferencia. La orden se crea
+        //    cuando el pago vuelva aprobado (vía sync desde PagoExito).
+        const result = await paymentService.initMP({
+          items: itemsPayload,
           canal: 'E-commerce',
           payer: user?.email ? { email: user.email } : undefined,
         })
 
-        // Limpiar carrito ANTES de redirigir a MP
+        // Limpiar carrito antes de redirigir a MP
         clearCart()
-        sessionStorage.setItem('mp_pending_order', String(result.orderId))
 
-        // Redirigir a MP: sandbox en DEV, real en producción
         const redirectUrl = import.meta.env.DEV
           ? result.sandbox_init_point
           : result.init_point
@@ -227,13 +310,15 @@ const Carrito = () => {
         window.location.href = redirectUrl
 
       } else {
-        // ── Checkout con Efectivo ────────────────────────
+        // ── Flujo Efectivo: el modal ya hizo de confirmación,
+        //    creamos la orden ahora.
         const sale = await salesOrderService.create({
           canal:       'E-commerce',
           metodo_pago: 'Efectivo',
-          items,
+          items:       itemsPayload,
         })
         clearCart()
+        setConfirmOpen(false)
         setOrderDone(sale)
       }
     } catch (e) {
@@ -381,9 +466,9 @@ const Carrito = () => {
                     </div>
                   )}
 
-                  {/* Botón principal */}
+                  {/* Botón principal — abre modal de confirmación */}
                   <button
-                    onClick={handleCheckout}
+                    onClick={handleCheckoutClick}
                     disabled={checking}
                     className={`w-full font-semibold py-3.5 rounded-full transition-all duration-200
                                 flex items-center justify-center gap-2 text-sm disabled:opacity-60
@@ -416,6 +501,19 @@ const Carrito = () => {
       </main>
 
       <Footer />
+
+      {/* Modal de confirmación previo al checkout */}
+      <ConfirmCheckoutModal
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={handleConfirm}
+        items={itemsPayload}
+        total={total}
+        shipping={shipping}
+        metodoPago={metodoPago}
+        loading={checking}
+        error={error}
+      />
     </div>
   )
 }
