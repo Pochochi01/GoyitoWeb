@@ -23,6 +23,7 @@ import Footer  from '../../Components/Footer/Footer.jsx'
 import { FiCheckCircle, FiPackage, FiShoppingBag,
          FiCreditCard, FiCalendar, FiAlertCircle } from 'react-icons/fi'
 import salesOrderService from '../../api/services/salesOrderService'
+import paymentService    from '../../api/services/paymentService'
 import { useAuth } from '../../context/AuthContext.jsx'
 
 export default function PagoExito() {
@@ -30,6 +31,9 @@ export default function PagoExito() {
   const { user }        = useAuth()
   const [order, setOrder]     = useState(null)
   const [loadingO, setLoadingO] = useState(false)
+  // Estado real devuelto por el backend tras consultar a MP.
+  // Es la fuente de verdad para `isApproved` — los query params se pueden falsificar.
+  const [syncedStatus, setSyncedStatus] = useState(null)
 
   // Parámetros enviados por MercadoPago
   const mpStatus      = params.get('status')             // approved / in_process
@@ -38,15 +42,32 @@ export default function PagoExito() {
   const orderId       = params.get('external_reference') // nuestro ID de orden
   const preferenceId  = params.get('preference_id')
 
-  const isApproved = mpStatus === 'approved' || collStatus === 'approved'
-  const isPending  = mpStatus === 'pending'  || collStatus === 'in_process'
+  // El estado mostrado se basa en lo que devolvió el backend tras consultar MP.
+  // Si aún no se sincronizó, caemos al status de los query params para no quedar
+  // en blanco (mejor UX, aunque temporal).
+  const effectiveStatus = syncedStatus ?? mpStatus ?? collStatus
+  const isApproved      = effectiveStatus === 'approved'
+  const isPending       = effectiveStatus === 'pending' || effectiveStatus === 'in_process'
 
   // Limpiar sessionStorage del checkout pendiente
   useEffect(() => {
     sessionStorage.removeItem('mp_pending_order')
   }, [])
 
-  // Cargar detalle de la orden si el usuario está logueado
+  // Verificar el pago contra MercadoPago y actualizar el estado de la orden.
+  // Esto fuerza la transición "Pendiente → Pagada" cuando MP ya aprobó el pago,
+  // sin depender del webhook (útil en dev y como fallback en prod).
+  useEffect(() => {
+    if (!paymentId) return
+    paymentService.sync(paymentId)
+      .then(res => {
+        if (res?.mpStatus) setSyncedStatus(res.mpStatus)
+      })
+      .catch(() => { /* el backend ya logueó el error; el usuario ve el estado de los params */ })
+  }, [paymentId])
+
+  // Cargar detalle de la orden si el usuario está logueado.
+  // Se relanza cuando syncedStatus cambia, para mostrar el estado actualizado.
   useEffect(() => {
     if (!orderId || !user) return
     setLoadingO(true)
@@ -54,7 +75,7 @@ export default function PagoExito() {
       .then(setOrder)
       .catch(() => setOrder(null))
       .finally(() => setLoadingO(false))
-  }, [orderId, user])
+  }, [orderId, user, syncedStatus])
 
   return (
     <div className="bg-white dark:bg-gray-900 min-h-screen flex flex-col">

@@ -3,14 +3,28 @@ const { Preference } = require('mercadopago')
 const mpClient       = require('../config/mp.config')
 const { mpEnvironment, mpAccountHint } = require('../config/mp.config')
 
-const BASE_URL         = process.env.CLIENT_ORIGIN || 'http://localhost:5173'
-const DEFAULT_CURRENCY = process.env.MP_CURRENCY   || 'ARS'
+// CLIENT_ORIGIN puede ser lista coma-separada (ej. "https://x.com,https://www.x.com").
+// Para construir back_urls necesitamos UNA URL canónica → tomamos la primera.
+// Sin trailing slash para evitar "//" en URLs concatenadas.
+const FRONTEND_URL = (process.env.PUBLIC_URL || process.env.CLIENT_ORIGIN || 'http://localhost:5173')
+  .split(',')[0].trim().replace(/\/$/, '')
+
+// URL pública del backend (para que MP llegue al webhook).
+// En dev local se omite (MP no puede llegar a localhost). En prod debe apuntar a
+// la API expuesta a internet (ej. https://api.zolimportados.com).
+const API_PUBLIC_URL = (process.env.PUBLIC_API_URL || '').trim().replace(/\/$/, '')
+
+const DEFAULT_CURRENCY = process.env.MP_CURRENCY || 'ARS'
 
 const DEFAULT_BACK_URLS = {
-  success: `${BASE_URL}/pago/exito`,
-  failure: `${BASE_URL}/pago/error`,
-  pending: `${BASE_URL}/pago/pendiente`,
+  success: `${FRONTEND_URL}/pago/exito`,
+  failure: `${FRONTEND_URL}/pago/error`,
+  pending: `${FRONTEND_URL}/pago/pendiente`,
 }
+
+const DEFAULT_NOTIFICATION_URL = API_PUBLIC_URL
+  ? `${API_PUBLIC_URL}/api/payments/webhook`
+  : undefined
 
 function validateItem(item, index) {
   if (!item.title || typeof item.title !== 'string')
@@ -37,7 +51,7 @@ class PaymentService {
     externalReference = undefined,
     backUrls          = DEFAULT_BACK_URLS,
     autoReturn        = 'approved',
-    notificationUrl   = undefined,
+    notificationUrl   = DEFAULT_NOTIFICATION_URL,
     statementDescriptor = 'ZOLIMPORTADOS',
     expirationMinutes = 0,
   }) {

@@ -19,4 +19,9 @@ router.get(
 // POST /api/payments/webhook  (sin auth — llamada desde servidores de MP)
 router.post('/webhook', ctrl.webhook)
 
+// GET /api/payments/sync?payment_id=XXX  (sin auth — el usuario aún puede
+// no estar logueado al volver de MP, y la verificación se hace contra MP
+// con el access_token del backend, no contra la sesión).
+router.get('/sync', ctrl.sync)
+
 module.exports = router

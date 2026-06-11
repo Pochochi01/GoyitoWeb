@@ -83,41 +83,74 @@ async function webhook(req, res) {
   }
 }
 
-async function _processPaymentNotification(paymentId) {
+// Mapeo MP status → estado de orden (compartido por webhook y sync).
+const ESTADO_MAP = {
+  approved:   'Pagada',
+  rejected:   'Cancelada',
+  cancelled:  'Cancelada',
+  in_process: 'Pendiente',
+  pending:    'Pendiente',
+  authorized: 'Pendiente',
+}
+
+/**
+ * Consulta un pago en MP por su ID, mapea su estado y actualiza la orden vinculada.
+ * Devuelve { mpStatus, orderId, nuevoEstado, updated } o null si no es válido.
+ */
+async function _syncFromMercadoPago(paymentId, logTag = '[Sync MP]') {
   const paymentAPI = new Payment(mpClient)
   const mpPayment  = await paymentAPI.get({ id: String(paymentId) })
   const { status, external_reference, id } = mpPayment
 
-  logger.info(`[Webhook MP] Pago ${id} | status=${status} | orderId=${external_reference}`)
+  logger.info(`${logTag} Pago ${id} | status=${status} | orderId=${external_reference}`)
 
   if (!external_reference) {
-    logger.warn('[Webhook MP] Sin external_reference')
-    return
+    logger.warn(`${logTag} Sin external_reference`)
+    return { mpStatus: status, orderId: null, nuevoEstado: null, updated: false }
   }
   const orderId = parseInt(external_reference, 10)
   if (isNaN(orderId)) {
-    logger.warn(`[Webhook MP] external_reference inválido: ${external_reference}`)
-    return
+    logger.warn(`${logTag} external_reference inválido: ${external_reference}`)
+    return { mpStatus: status, orderId: null, nuevoEstado: null, updated: false }
   }
 
-  const estadoMap = {
-    approved:   'Pagada',
-    rejected:   'Cancelada',
-    cancelled:  'Cancelada',
-    in_process: 'Pendiente',
-    pending:    'Pendiente',
-    authorized: 'Pendiente',
-  }
-
-  const nuevoEstado = estadoMap[status]
+  const nuevoEstado = ESTADO_MAP[status]
   if (!nuevoEstado) {
-    logger.warn(`[Webhook MP] Estado MP desconocido: ${status}`)
-    return
+    logger.warn(`${logTag} Estado MP desconocido: ${status}`)
+    return { mpStatus: status, orderId, nuevoEstado: null, updated: false }
   }
 
   const updated = await SalesOrder.updateEstado(orderId, nuevoEstado)
-  if (updated) logger.info(`[Webhook MP] Orden #${orderId} → ${nuevoEstado} ✓`)
-  else         logger.warn(`[Webhook MP] Orden #${orderId} no encontrada en BD`)
+  if (updated) logger.info(`${logTag} Orden #${orderId} → ${nuevoEstado} ✓`)
+  else         logger.warn(`${logTag} Orden #${orderId} no encontrada en BD`)
+
+  return { mpStatus: status, orderId, nuevoEstado, updated: Boolean(updated) }
 }
 
-module.exports = { createPreference, getPreference, webhook }
+async function _processPaymentNotification(paymentId) {
+  await _syncFromMercadoPago(paymentId, '[Webhook MP]')
+}
+
+// ─── GET /api/payments/sync?payment_id=XXX ───────────────────
+// Llamado desde el frontend cuando el usuario vuelve de MP. Consulta MP y
+// actualiza el estado de la orden vinculada. Es seguro: la fuente de verdad
+// es MP (no los query params del navegador, que podrían ser falsificados).
+async function sync(req, res) {
+  const paymentId = req.query.payment_id || req.query.collection_id
+  if (!paymentId) {
+    return res.status(400).json({ ok: false, message: "'payment_id' es requerido" })
+  }
+  try {
+    const result = await _syncFromMercadoPago(paymentId, '[Sync MP]')
+    return res.json({ ok: true, ...result })
+  } catch (err) {
+    logger.error('[Sync MP] Error:', err.message)
+    return res.status(500).json({
+      ok: false,
+      message: 'No se pudo verificar el pago con MercadoPago',
+      detail: process.env.NODE_ENV !== 'production' ? err.message : undefined,
+    })
+  }
+}
+
+module.exports = { createPreference, getPreference, webhook, sync }
