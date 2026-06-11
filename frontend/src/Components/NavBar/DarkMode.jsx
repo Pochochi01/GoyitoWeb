@@ -19,15 +19,15 @@ const DarkMode = () => {
   const toggle = () => setTheme(t => t === 'dark' ? 'light' : 'dark')
 
   return (
-    <div className="relative w-12 h-12 flex-shrink-0" onClick={toggle}>
+    <div className="relative w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 cursor-pointer" onClick={toggle}>
       <img
         src={LightButton} alt="Modo claro"
-        className={`w-12 cursor-pointer absolute right-0 z-10 transition-opacity duration-300
+        className={`w-10 sm:w-12 cursor-pointer absolute right-0 z-10 transition-opacity duration-300
           ${theme === 'dark' ? 'opacity-0' : 'opacity-100'}`}
       />
       <img
         src={DarkButton} alt="Modo oscuro"
-        className="w-12 cursor-pointer"
+        className="w-10 sm:w-12 cursor-pointer"
       />
     </div>
   )

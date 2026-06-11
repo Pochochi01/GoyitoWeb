@@ -20,13 +20,16 @@ const NavBar = ({ handleOrderPopup }) => {
 
   return (
     <div className="bg-white dark:bg-gray-900 duration-200 relative z-40">
-      <div className="py-4">
-        {/* Tres columnas: logo | nav centrado | acciones
-            En mobile el grid sigue siendo 3 cols pero el logo ocupa menos espacio
-            porque el texto "ZolImportados" se oculta hasta sm. */}
-        <div className="container grid grid-cols-3 items-center px-4 sm:px-6 lg:px-0 gap-2">
+      <div className="py-3 sm:py-4">
+        {/* Layout:
+            • Mobile/Tablet (< lg): flex con justify-between → logo a la izquierda,
+              acciones (cart, user, darkmode, burger) pegadas a la derecha, sin
+              espacios muertos en el medio.
+            • Desktop (lg+): grid de 3 columnas → logo | nav centrado | acciones. */}
+        <div className="container flex items-center justify-between lg:grid lg:grid-cols-3
+                        px-4 sm:px-6 lg:px-0 gap-2">
 
-          {/* ── Columna izquierda: logo + nombre ── */}
+          {/* ── Logo + nombre ── */}
           <div className="flex items-center gap-2 min-w-0">
             <Link to="/" aria-label="Inicio — ZolImportados" className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-200 min-w-0">
               <img
@@ -42,7 +45,7 @@ const NavBar = ({ handleOrderPopup }) => {
             </Link>
           </div>
 
-          {/* ── Columna central: links de navegación (solo desktop) ── */}
+          {/* ── Links de navegación (solo desktop) ── */}
           <nav className="hidden lg:flex justify-center">
             <ul className="flex items-center gap-1">
               {MenuLinks.map((item) => (
@@ -60,9 +63,11 @@ const NavBar = ({ handleOrderPopup }) => {
             </ul>
           </nav>
 
-          {/* ── Columna derecha: buscador, carrito, usuario, darkmode, burger ── */}
-          <div className="flex items-center gap-3 justify-end">
-            {/* Search */}
+          {/* ── Acciones: buscador, carrito, usuario, darkmode, burger ──
+              Cada item se centra verticalmente con items-center.
+              `min-h-[40px]` en los wrappers da target táctil consistente. */}
+          <div className="flex items-center gap-1.5 sm:gap-3 justify-end flex-shrink-0">
+            {/* Search — solo en sm+ */}
             <div className="relative group hidden sm:block">
               <input type="text" placeholder="Buscar" className="search-bar" />
               <IoMdSearch
@@ -72,11 +77,13 @@ const NavBar = ({ handleOrderPopup }) => {
             </div>
 
             {/* Cart */}
-            <Link to="/carrito" className="relative p-2" aria-label="Carrito de compras">
+            <Link to="/carrito"
+              className="relative flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              aria-label="Carrito de compras">
               <FaCartShopping className="text-xl text-gray-600 dark:text-gray-400" />
               {cartCount > 0 && (
                 <div className="w-4 h-4 bg-red-500 text-white rounded-full absolute
-                               top-0 right-0 flex items-center justify-center text-xs font-bold">
+                               top-0 right-0 flex items-center justify-center text-[10px] font-bold">
                   {cartCount > 9 ? '9+' : cartCount}
                 </div>
               )}
@@ -88,15 +95,15 @@ const NavBar = ({ handleOrderPopup }) => {
             {/* Dark mode */}
             <DarkMode />
 
-            {/* Burger — solo móvil */}
+            {/* Burger — solo móvil/tablet */}
             <button
-              className="lg:hidden p-1"
+              className="lg:hidden flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               onClick={() => setOpen(!open)}
               aria-label="Menú"
             >
               {open
-                ? <IoMdClose className="text-3xl" />
-                : <IoMdMenu  className="text-3xl" />
+                ? <IoMdClose className="text-2xl sm:text-3xl" />
+                : <IoMdMenu  className="text-2xl sm:text-3xl" />
               }
             </button>
           </div>

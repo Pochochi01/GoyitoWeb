@@ -29,10 +29,10 @@ const UserMenu = () => {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(v => !v)}
-        className="flex items-center gap-1.5 p-1 text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors duration-200"
+        className="flex items-center justify-center gap-1.5 w-10 h-10 sm:w-auto sm:h-auto sm:px-2 sm:py-1 rounded-full text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
         aria-label="Cuenta"
       >
-        <FaUserCircle className="text-2xl" />
+        <FaUserCircle className="text-2xl flex-shrink-0" />
         {user && <span className="hidden sm:inline text-xs font-semibold max-w-[80px] truncate">{user.name}</span>}
       </button>
 
