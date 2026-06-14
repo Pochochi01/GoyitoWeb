@@ -118,6 +118,23 @@ const Product = {
     return r.affectedRows
   },
 
+  /**
+   * Dado un array de IDs, devuelve un Set con los que existen en la tabla products.
+   * Útil para sanitizar `producto_id` antes de insertar en tablas que tienen FK
+   * (sales_order_items, stock_movements). Items con producto_id inexistente se
+   * pueden insertar con NULL gracias a ON DELETE SET NULL.
+   */
+  async existingIds(ids, conn) {
+    const valid = (Array.isArray(ids) ? ids : [])
+      .filter(id => id !== null && id !== undefined)
+      .map(Number)
+      .filter(n => Number.isInteger(n) && n > 0)
+    if (!valid.length) return new Set()
+    const db = conn || pool
+    const [rows] = await db.query('SELECT id FROM products WHERE id IN (?)', [valid])
+    return new Set(rows.map(r => r.id))
+  },
+
   async count({ categoria_id, activo } = {}) {
     const where  = []
     const params = []

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { FiEye, FiX, FiCreditCard, FiRefreshCw } from 'react-icons/fi'
+import { FiEye, FiX, FiCreditCard, FiRefreshCw, FiCopy, FiCheck } from 'react-icons/fi'
 import StatusBadge     from '../../../../../Components/Admin/StatusBadge.jsx'
 import ExportMenu      from '../../../../../Components/Admin/ExportMenu.jsx'
 import DateRangeFilter from '../../../../../Components/Admin/DateRangeFilter.jsx'
@@ -7,6 +7,26 @@ import salesOrderService from '../../../../../api/services/salesOrderService'
 
 const ESTADOS = ['Todos','Pendiente','Pagada','Enviada','Entregada','Cancelada']
 const CANALES  = ['Todos','E-commerce','POS']
+
+// Componente pequeño: muestra un valor monoespaciado con botón de copiar al portapapeles.
+function CopyableCode({ value, label }) {
+  const [copied, setCopied] = useState(false)
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch { /* clipboard no disponible */ }
+  }
+  return (
+    <button onClick={handleCopy} title={`Copiar ${label || 'al portapapeles'}`}
+      className="inline-flex items-center gap-1.5 font-mono text-xs bg-gray-100 dark:bg-gray-700 hover:bg-primary/10 hover:text-primary
+                 dark:hover:bg-primary/20 text-gray-700 dark:text-gray-200 px-2 py-1 rounded-md transition-colors max-w-full">
+      <span className="truncate">{value}</span>
+      {copied ? <FiCheck size={11} className="text-green-500 flex-shrink-0"/> : <FiCopy size={11} className="flex-shrink-0 opacity-60"/>}
+    </button>
+  )
+}
 
 function OrderModal({ orderId, onClose, onUpdated }) {
   const [order,  setOrder]  = useState(null)
@@ -59,6 +79,21 @@ function OrderModal({ orderId, onClose, onUpdated }) {
                 <div><p className="text-gray-400 text-xs">Operador POS</p><p className="font-semibold font-mono dark:text-white">{order.operador_nombre}</p></div>
               )}
             </div>
+
+            {/* ID de pago MercadoPago — para control manual con la app de MP */}
+            {order.mp_payment_id && (
+              <div className="border-t border-gray-100 dark:border-gray-700 pt-3">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                  Pago MercadoPago
+                </p>
+                <div className="flex flex-col gap-1.5">
+                  <p className="text-[10px] text-gray-400">
+                    Usá este ID para conciliar con el panel de MercadoPago
+                  </p>
+                  <CopyableCode value={order.mp_payment_id} label="ID de pago"/>
+                </div>
+              </div>
+            )}
 
             <div className="border-t border-gray-100 dark:border-gray-700 pt-3">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Productos</p>
@@ -173,7 +208,7 @@ export default function VentOrdenes() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 dark:bg-gray-700/40">
                   <tr>
-                    {['ID','Fecha','Cliente','Canal','Estado','Pago','Total',''].map(h => (
+                    {['ID','Fecha','Cliente','Canal','Estado','Pago','ID MP','Total',''].map(h => (
                       <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{h}</th>
                     ))}
                   </tr>
@@ -189,6 +224,11 @@ export default function VentOrdenes() {
                       </td>
                       <td className="px-4 py-3"><StatusBadge status={o.estado}/></td>
                       <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">{o.metodo_pago}</td>
+                      <td className="px-4 py-3">
+                        {o.mp_payment_id
+                          ? <CopyableCode value={o.mp_payment_id} label="ID de pago MP"/>
+                          : <span className="text-gray-300 text-xs">—</span>}
+                      </td>
                       <td className="px-4 py-3 font-bold text-gray-800 dark:text-white">${Number(o.total).toLocaleString()}</td>
                       <td className="px-4 py-3">
                         <button onClick={() => setSelected(o.id)} className="flex items-center gap-1 text-xs text-primary font-semibold hover:underline">

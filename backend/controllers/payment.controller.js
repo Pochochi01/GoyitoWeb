@@ -3,6 +3,7 @@ const { Payment }    = require('mercadopago')
 const paymentService = require('../services/payment.service')
 const mpClient       = require('../config/mp.config')
 const SalesOrder     = require('../models/SalesOrder')
+const Product        = require('../models/Product')
 const ProductStock   = require('../models/ProductStock')
 const StockMovement  = require('../models/StockMovement')
 const { pool }       = require('../config/db')
@@ -175,6 +176,15 @@ async function _createOrderFromMpMetadata(mpPayment, logTag) {
   try {
     await conn.beginTransaction()
 
+    // Sanear producto_id: si llega un ID que no existe en `products` lo dejamos
+    // en NULL para que la orden se cree igual con el nombre_producto histórico.
+    const ids       = items.map(i => i.producto_id).filter(Boolean)
+    const validIds  = await Product.existingIds(ids, conn)
+    const cleanItems = items.map(i => ({
+      ...i,
+      producto_id: i.producto_id && validIds.has(Number(i.producto_id)) ? Number(i.producto_id) : null,
+    }))
+
     const orderId = await SalesOrder.create({
       fecha,
       canal:         meta.canal || 'E-commerce',
@@ -184,11 +194,11 @@ async function _createOrderFromMpMetadata(mpPayment, logTag) {
       metodo_pago:   'MercadoPago',
       mp_payment_id: String(mpPayment.id),
       total,
-      items,
+      items:         cleanItems,
     }, conn)
 
-    // Ajustar stock + registrar movimientos para items con producto_id
-    for (const item of items) {
+    // Ajustar stock + registrar movimientos solo para items con producto real
+    for (const item of cleanItems) {
       if (item.producto_id) {
         await ProductStock.adjustStock(item.producto_id, -item.cantidad, conn)
         await StockMovement.create({

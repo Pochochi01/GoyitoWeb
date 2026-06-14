@@ -1,4 +1,5 @@
 const SalesOrder    = require('../models/SalesOrder')
+const Product       = require('../models/Product')
 const ProductStock  = require('../models/ProductStock')
 const StockMovement = require('../models/StockMovement')
 const { createPreference } = require('../services/paymentService')
@@ -6,14 +7,30 @@ const { pool } = require('../config/db')
 
 // ─── Helpers ─────────────────────────────────────────────────
 
+/**
+ * Reemplaza los producto_id inexistentes por null. Permite que la orden se
+ * registre aunque algunos items vengan de catálogos estáticos o referencias
+ * desactualizadas — el nombre del producto queda como histórico.
+ */
+async function _sanitizeItems(items, conn) {
+  const ids        = items.map(i => i.producto_id).filter(Boolean)
+  const validIds   = await Product.existingIds(ids, conn)
+  return items.map(i => ({
+    ...i,
+    producto_id: i.producto_id && validIds.has(Number(i.producto_id)) ? Number(i.producto_id) : null,
+  }))
+}
+
 /** Crea la orden y ajusta stock dentro de una transacción activa. */
 async function _createOrderInTransaction(conn, { fecha, canal, cliente_id, operador_id, metodo_pago, total, items, usuario_id }) {
+  const cleanItems = await _sanitizeItems(items, conn)
+
   const orderId = await SalesOrder.create(
     { fecha, canal, cliente_id: cliente_id || null, operador_id: operador_id || null,
-      estado: 'Pendiente', metodo_pago, total, items },
+      estado: 'Pendiente', metodo_pago, total, items: cleanItems },
     conn
   )
-  for (const item of items) {
+  for (const item of cleanItems) {
     if (item.producto_id) {
       await ProductStock.adjustStock(item.producto_id, -item.cantidad, conn)
       await StockMovement.create(

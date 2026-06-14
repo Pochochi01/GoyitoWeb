@@ -19,7 +19,9 @@ const ProductCardItem = ({ item }) => {
   const [added, setAdded] = useState(false)
 
   const handleAdd = () => {
-    addToCart({ ...item, discount: 0 })
+    // Preservar el descuento real del producto si viene (productos reales de API)
+    // o asumir 0 si no viene (datos legacy)
+    addToCart({ ...item, discount: item.discount ?? 0 })
     setAdded(true)
     setTimeout(() => setAdded(false), 1200)
   }

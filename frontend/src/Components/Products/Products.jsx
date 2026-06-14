@@ -1,27 +1,58 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import Heading from '../Shared/Heading.jsx'
 import ProductCard from './ProductCard.jsx'
-import img1 from '../../assets/Products/p-1.jpg'
-import img2 from '../../assets/Products/p-3.jpg'
-import img3 from '../../assets/Products/p-4.jpg'
-import img4 from '../../assets/Products/p-5.jpg'
+import productService from '../../api/services/productService'
 
-const ProductsData = [
-    { id: 1, img: img1, title: "Auricular JBL",   price: "120", aosDelay: "0" },
-    { id: 2, img: img2, title: "Auricular Sanyo", price: "420", aosDelay: "0" },
-    { id: 3, img: img3, title: "Auricular Red",   price: "320", aosDelay: "0" },
-    { id: 4, img: img4, title: "Auricular JS",    price: "220", aosDelay: "0" },
-]
-
+/**
+ * Sección "Nuestros Productos" de la home.
+ * Lee productos reales desde la API (no datos hardcoded), así los items
+ * agregados al carrito tienen un producto_id válido en la BD.
+ *
+ * Estrategia de selección: top 4 activos, priorizando los que están en oferta.
+ */
 const Products = () => {
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    productService.getAll({ limit: 20, activo: 1 })
+      .then(res => {
+        const list = res?.data || []
+        // Priorizar productos con descuento, luego completar con el resto.
+        const ofertas  = list.filter(p => p.discount > 0)
+        const regulares = list.filter(p => p.discount === 0)
+        const top = [...ofertas, ...regulares].slice(0, 4)
+        // ProductCard espera { id, img, title, price } — mapeamos `images[0]` a `img`.
+        setItems(top.map(p => ({
+          id:       p.id,
+          img:      p.images?.[0] || null,
+          title:    p.title,
+          price:    p.price,
+          discount: p.discount,
+          aosDelay: '0',
+        })))
+      })
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false))
+  }, [])
+
   return (
     <div>
-        <div className="container">
-            {/* header section*/}
-            <Heading title="Nuestros Productos" subtitle={"Conozca Nuestros Productos"}/>
-            {/* body section*/}
-            <ProductCard data ={ProductsData}/>
-        </div>
+      <div className="container">
+        <Heading title="Nuestros Productos" subtitle={"Conozca Nuestros Productos"}/>
+
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <span className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"/>
+          </div>
+        ) : items.length === 0 ? (
+          <p className="text-center py-10 text-gray-400 text-sm">
+            No hay productos disponibles en este momento.
+          </p>
+        ) : (
+          <ProductCard data={items}/>
+        )}
+      </div>
     </div>
   )
 }
