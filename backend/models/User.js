@@ -15,10 +15,73 @@ const User = {
 
   async findById(id) {
     const [rows] = await pool.query(
-      'SELECT id, username, nombre, email, rol, activo, sucursal_id, created_at FROM users WHERE id = ? LIMIT 1',
+      `SELECT id, username, nombre, email, rol, activo, sucursal_id,
+              google_id, avatar_url, provider, created_at
+       FROM users WHERE id = ? LIMIT 1`,
       [id]
     )
     return rows[0] || null
+  },
+
+  async findByEmail(email) {
+    if (!email) return null
+    const [rows] = await pool.query(
+      'SELECT * FROM users WHERE email = ? LIMIT 1',
+      [email]
+    )
+    return rows[0] || null
+  },
+
+  async findByGoogleId(googleId) {
+    if (!googleId) return null
+    const [rows] = await pool.query(
+      'SELECT * FROM users WHERE google_id = ? LIMIT 1',
+      [String(googleId)]
+    )
+    return rows[0] || null
+  },
+
+  /**
+   * Vincula una cuenta existente (login tradicional) con un perfil Google.
+   * Actualiza google_id, avatar_url y provider. No toca password ni email.
+   */
+  async linkGoogleAccount(userId, { googleId, avatarUrl }) {
+    const [r] = await pool.query(
+      `UPDATE users
+       SET google_id = ?, avatar_url = COALESCE(?, avatar_url), provider = 'google'
+       WHERE id = ?`,
+      [String(googleId), avatarUrl || null, userId]
+    )
+    return r.affectedRows
+  },
+
+  /**
+   * Crea un usuario desde el perfil Google.
+   * El username se deriva del email (parte antes del @) + sufijo numérico si colisiona.
+   * password_hash queda NULL — el usuario solo puede entrar vía Google.
+   */
+  async createFromGoogle({ googleId, email, nombre, avatarUrl, rol = 'comprador' }) {
+    const baseUsername = String(email).split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '')
+    const username     = await User._uniqueUsername(baseUsername || `user${Date.now()}`)
+
+    const [result] = await pool.query(
+      `INSERT INTO users (username, password_hash, nombre, email, google_id, avatar_url, provider, rol)
+       VALUES (?, NULL, ?, ?, ?, ?, 'google', ?)`,
+      [username, nombre, email, String(googleId), avatarUrl || null, rol]
+    )
+    return result.insertId
+  },
+
+  async _uniqueUsername(base) {
+    let candidate = base
+    let i = 2
+    while (true) {
+      const [rows] = await pool.query(
+        'SELECT id FROM users WHERE username = ? LIMIT 1', [candidate]
+      )
+      if (!rows.length) return candidate
+      candidate = `${base}${i++}`
+    }
   },
 
   async create({ username, password_hash, nombre, email, rol = 'comprador' }) {

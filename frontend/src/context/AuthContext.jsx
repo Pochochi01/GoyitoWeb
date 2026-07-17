@@ -25,6 +25,25 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
+  /**
+   * Login con un JWT externo (ej. callback de Google OAuth).
+   * Persiste el token primero, después llama /auth/me para obtener los datos
+   * del usuario (el JWT solo contiene id/username/rol, no nombre ni email).
+   */
+  const loginWithToken = async (token) => {
+    try {
+      // Guardar token primero — authService.me() lo necesita en el header
+      localStorage.setItem('goyito_token', token)
+      const userData = await authService.me()
+      persist(token, userData)
+      return { success: true, user: userData }
+    } catch (err) {
+      localStorage.removeItem('goyito_token')
+      const msg = err.response?.data?.message || 'Token inválido'
+      return { success: false, error: msg }
+    }
+  }
+
   const register = async (formData) => {
     try {
       const { token, user: userData } = await authService.register(formData)
@@ -46,7 +65,7 @@ export const AuthProvider = ({ children }) => {
   return (
     <AuthContext.Provider value={{
       user,
-      login, register, logout,
+      login, loginWithToken, register, logout,
       isAdmin:        user?.role === 'admin',
       isAdminComplejo:user?.role === 'admin_complejo',
       isAnyAdmin:     user?.role === 'admin' || user?.role === 'admin_complejo',

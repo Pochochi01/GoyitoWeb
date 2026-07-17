@@ -47,6 +47,11 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser(process.env.COOKIE_SECRET))
 
+// Passport — solo se usa para Google OAuth (modo stateless, sin sessions).
+// La configuración de la estrategia vive en config/passport.js.
+const passport = require('./config/passport')
+app.use(passport.initialize())
+
 // ─── Archivos estáticos — uploads ─────────────────────────────
 // Sirve imágenes subidas por el admin. En producción nginx las sirve
 // directo del disco (ver nginx/api.zolimportados.com.conf), pero este
@@ -87,6 +92,12 @@ app.use('/api/payments',       paymentRoutes)
 
 // ─── Health check ─────────────────────────────────────────────
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', env: process.env.NODE_ENV }))
+
+// ─── Multer error handler ─────────────────────────────────────
+// Captura LIMIT_FILE_SIZE / tipo de archivo no permitido antes del
+// errorMiddleware genérico para devolver JSON con mensaje amigable.
+const { multerErrorHandler } = require('./services/imageService')
+app.use(multerErrorHandler)
 
 // ─── SPA fallback (producción sin Nginx) ──────────────────────
 if (process.env.NODE_ENV === 'production') {

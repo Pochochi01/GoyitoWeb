@@ -11,6 +11,7 @@ import Tienda                from './Pages/Tienda.jsx'
 import Carrito               from './Pages/Carrito.jsx'
 import Login                 from './Pages/Login.jsx'
 import Register              from './Pages/Register.jsx'
+import AuthCallback          from './Pages/AuthCallback.jsx'
 import Dashboard             from './Pages/Admin/Dashboard.jsx'
 import POSPage               from './Pages/POS/POSPage.jsx'
 import POSReports            from './Pages/POS/POSReports.jsx'
@@ -43,8 +44,9 @@ const App = () => {
             }/>
             <Route path="/about"    element={<About />}    />
             <Route path="/carrito"  element={<Carrito />}  />
-            <Route path="/login"    element={<Login />}    />
-            <Route path="/register" element={<Register />} />
+            <Route path="/login"          element={<Login />}        />
+            <Route path="/register"       element={<Register />}     />
+            <Route path="/auth/callback"  element={<AuthCallback />} />
 
             {/* ── Resultados de pago MercadoPago ── */}
             <Route path="/pago/exito"     element={<PagoExito />} />

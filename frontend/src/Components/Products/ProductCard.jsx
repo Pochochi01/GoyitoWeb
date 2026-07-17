@@ -32,7 +32,8 @@ const ProductCardItem = ({ item }) => {
         <img
           src={item.img}
           alt={item.title}
-          className='w-full aspect-[260/180] object-cover rounded-md'
+          loading='lazy'
+          className='w-full aspect-[13/10] object-cover object-center rounded-md'
         />
         {/* Overlay táctil: en mobile siempre visible al tocar, en desktop solo hover */}
         <div

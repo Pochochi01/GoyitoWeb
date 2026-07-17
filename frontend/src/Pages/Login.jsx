@@ -1,15 +1,41 @@
-import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { FcGoogle } from 'react-icons/fc'
 import { FiEye, FiEyeOff, FiLogIn } from 'react-icons/fi'
 import { useAuth } from '../context/AuthContext.jsx'
 
+// URL absoluta del backend OAuth. No usamos axios porque es una navegación
+// completa (window.location.href), no un fetch — el navegador tiene que
+// seguir los redirects de Google.
+const API_URL  = import.meta.env.VITE_API_URL || 'http://localhost:5001/api'
+const GOOGLE_AUTH_URL = `${API_URL}/auth/google`
+
+const OAUTH_ERROR_MESSAGES = {
+  no_user:      'No se pudo verificar tu cuenta de Google.',
+  auth_failed:  'Ocurrió un problema con el inicio de sesión con Google.',
+}
+
 const Login = () => {
+  const [searchParams] = useSearchParams()
   const [form, setForm] = useState({ username: '', password: '' })
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
+
+  // Mostrar errores de OAuth si Login se cargó con ?oauth_error=...
+  useEffect(() => {
+    const oauthErr = searchParams.get('oauth_error')
+    if (oauthErr) {
+      setError(OAUTH_ERROR_MESSAGES[oauthErr] || `Error de OAuth: ${oauthErr}`)
+    }
+  }, [searchParams])
+
+  const handleGoogleLogin = () => {
+    // Navegación completa — el flow de OAuth requiere redirects server-side.
+    window.location.href = GOOGLE_AUTH_URL
+  }
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
@@ -51,6 +77,28 @@ const Login = () => {
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 Bienvenido de vuelta
               </p>
+            </div>
+
+            {/* Botón Google OAuth */}
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              className="w-full flex items-center justify-center gap-3 px-4 py-2.5
+                         bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600
+                         rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200
+                         hover:bg-gray-50 dark:hover:bg-gray-600
+                         hover:border-primary hover:shadow-sm
+                         transition-all duration-200 min-h-[44px] mb-5"
+            >
+              <FcGoogle size={20}/>
+              Continuar con Google
+            </button>
+
+            {/* Separador "o" */}
+            <div className="flex items-center gap-3 mb-5">
+              <div className="flex-1 h-px bg-gray-200 dark:bg-gray-600"/>
+              <span className="text-xs text-gray-400 uppercase tracking-wider">o</span>
+              <div className="flex-1 h-px bg-gray-200 dark:bg-gray-600"/>
             </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
