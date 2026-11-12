@@ -49,19 +49,34 @@ const SectionCard = ({ title, children, tip }) => (
   </div>
 )
 
-const SaveBtn = ({ onClick, saved, label }) => (
-  <button onClick={onClick}
-    className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold text-white transition-colors duration-200
-      ${saved ? 'bg-green-500' : 'bg-primary hover:bg-red-600'}`}>
-    <FiSave size={14}/>
-    {saved ? '¡Guardado!' : `Guardar ${label}`}
-  </button>
+const SaveBtn = ({ onClick, saved, label, error, disabled, disabledLabel }) => (
+  <div className="flex flex-col items-stretch sm:items-end gap-2 w-full sm:w-auto">
+    {error && <p role="alert" className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2 sm:max-w-sm">{error}</p>}
+    <button onClick={onClick} disabled={disabled}
+      className={`flex items-center justify-center gap-2 px-5 min-h-[44px] rounded-full text-sm font-semibold text-white transition-[background-color,transform] duration-200 active:scale-[0.97]
+        disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed disabled:active:scale-100
+        ${saved ? 'bg-green-500' : 'bg-primary hover:bg-red-600'}`}>
+      <FiSave size={14}/>
+      {disabled && disabledLabel ? disabledLabel : saved ? '¡Guardado!' : `Guardar ${label}`}
+    </button>
+  </div>
 )
 
+// fn puede devolver { ok, error } (DesignContext.save). Sólo se muestra
+// "¡Guardado!" si realmente se persistió.
 const useSaveBtn = () => {
   const [saved, setSaved] = useState(false)
-  const trigger = (fn) => { fn(); setSaved(true); setTimeout(() => setSaved(false), 2200) }
-  return { saved, trigger }
+  const [error, setError] = useState('')
+  const timer = React.useRef()
+  const trigger = (fn) => {
+    const res = fn()
+    clearTimeout(timer.current)
+    if (res && res.ok === false) { setSaved(false); setError(res.error || 'No se pudo guardar'); return }
+    setError('')
+    setSaved(true)
+    timer.current = setTimeout(() => setSaved(false), 2200)
+  }
+  return { saved, error, trigger }
 }
 
 /** Upload de imagen individual → devuelve base64 */
@@ -118,7 +133,7 @@ const MAX_SLIDES = 5
 
 function HeroEditor() {
   const { design, updateHero } = useDesign()
-  const { saved, trigger }     = useSaveBtn()
+  const { saved, error: saveError, trigger }     = useSaveBtn()
   const [slides, setSlides]    = useState(() => design.hero.slides)
   const [preview, setPreview]  = useState(0)
   const timerRef               = useRef()
@@ -245,7 +260,7 @@ function HeroEditor() {
           <FiPlus size={14}/> Agregar slide ({slides.length}/{MAX_SLIDES})
         </button>
         <div className="flex-1"/>
-        <SaveBtn onClick={handleSave} saved={saved} label="Hero"/>
+        <SaveBtn onClick={handleSave} saved={saved} error={saveError} label="Hero"/>
       </div>
     </SectionCard>
   )
@@ -265,7 +280,7 @@ const CARD_LABELS = ['Auriculares (F1-C1)', 'SmartWatch (F1-C2)', 'Parlantes (F1
 
 function CategoryEditor() {
   const { design, updateCategory } = useDesign()
-  const { saved, trigger }         = useSaveBtn()
+  const { saved, error: saveError, trigger }         = useSaveBtn()
   const [cat,   setCat]  = useState(() => design.category)
   const [openCard, setOpenCard] = useState(null)
 
@@ -350,7 +365,7 @@ function CategoryEditor() {
         ))}
       </div>
 
-      <div className="mt-4 flex justify-end"><SaveBtn onClick={handleSave} saved={saved} label="Categorías"/></div>
+      <div className="mt-4 flex justify-end"><SaveBtn onClick={handleSave} saved={saved} error={saveError} label="Categorías"/></div>
     </SectionCard>
   )
 }
@@ -365,7 +380,7 @@ function CategoryEditor() {
  */
 function ServicesEditor() {
   const { design, updateServices } = useDesign()
-  const { saved, trigger }         = useSaveBtn()
+  const { saved, error: saveError, trigger }         = useSaveBtn()
   const [services, setServices]    = useState(() => design.services)
 
   const update = (idx, field, val) =>
@@ -437,7 +452,7 @@ function ServicesEditor() {
           <FiPlus size={14}/> Agregar servicio
         </button>
         <div className="flex-1"/>
-        <SaveBtn onClick={handleSave} saved={saved} label="Servicios"/>
+        <SaveBtn onClick={handleSave} saved={saved} error={saveError} label="Servicios"/>
       </div>
     </SectionCard>
   )
@@ -445,7 +460,6 @@ function ServicesEditor() {
 
 // ─── 4. BANNER EDITOR (existente, mejorado) ───────────────────
 function BannerEditor() {
-  const { saved, trigger } = useSaveBtn()
   const [bannerImg, setBannerImg] = useState(null)
   const [banner,    setBanner]    = useState({ title: 'Mejor Sonido', discount: '30% OFF', color: '#f42c37', subtitle: 'Oferta de Verano' })
 
@@ -479,7 +493,8 @@ function BannerEditor() {
         </div>
       </div>
       <div className="mt-4 flex justify-end">
-        <SaveBtn onClick={() => trigger(() => {})} saved={saved} label="Banner"/>
+        {/* Este bloque aún no está conectado a la tienda: antes mostraba "¡Guardado!" sin guardar nada */}
+        <SaveBtn saved={false} label="Banner" disabled disabledLabel="Próximamente"/>
       </div>
     </SectionCard>
   )
@@ -487,7 +502,6 @@ function BannerEditor() {
 
 // ─── 5. BLOGS EDITOR (existente) ─────────────────────────────
 function BlogsEditor() {
-  const { saved, trigger } = useSaveBtn()
   const [blogs, setBlogs] = useState([
     { title: 'Los mejores auriculares de 2025', subtitle: 'Guía de compra completa', img: null },
     { title: 'Smartwatches: todo lo que necesitás saber', subtitle: 'Comparativa detallada', img: null },
@@ -519,7 +533,7 @@ function BlogsEditor() {
         ))}
       </div>
       <div className="mt-4 flex justify-end">
-        <SaveBtn onClick={() => trigger(() => {})} saved={saved} label="Blogs"/>
+        <SaveBtn saved={false} label="Blogs" disabled disabledLabel="Próximamente"/>
       </div>
     </SectionCard>
   )
@@ -528,7 +542,7 @@ function BlogsEditor() {
 // ─── 6. WHATSAPP EDITOR ──────────────────────────────────────
 function WhatsAppEditor() {
   const { design, updateWhatsapp } = useDesign()
-  const { saved, trigger }         = useSaveBtn()
+  const { saved, error: saveError, trigger }         = useSaveBtn()
 
   const [numero,  setNumero]  = useState(() => design.whatsapp?.numero  || '')
   const [mensaje, setMensaje] = useState(() => design.whatsapp?.mensaje || '')
@@ -623,7 +637,7 @@ function WhatsAppEditor() {
 
         {/* Guardar */}
         <div className="flex justify-end">
-          <SaveBtn onClick={handleSave} saved={saved} label="WhatsApp"/>
+          <SaveBtn onClick={handleSave} saved={saved} error={saveError} label="WhatsApp"/>
         </div>
       </div>
     </SectionCard>

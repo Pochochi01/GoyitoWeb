@@ -14,7 +14,7 @@
  *  2. Crear un helper `updateMiSeccion` similar a los existentes
  *  3. El contexto guarda automáticamente en localStorage
  */
-import React, { createContext, useContext, useState, useCallback } from 'react'
+import React, { createContext, useContext, useState, useCallback, useRef } from 'react'
 
 const STORAGE_KEY = 'goyito_design'
 
@@ -79,30 +79,51 @@ const load = () => {
 
 export const DesignProvider = ({ children }) => {
   const [design, setDesign] = useState(load)
+  const designRef = useRef(design)
+  designRef.current = design
 
-  const save = useCallback((next) => {
+  /**
+   * Persiste el diseño. Antes recibía un updater `(prev) => …` y hacía
+   * JSON.stringify(función) → guardaba "undefined": nada sobrevivía al recargar.
+   * Devuelve { ok, error } para que la UI no muestre "¡Guardado!" en falso
+   * (p. ej. cuando las imágenes base64 superan la cuota de localStorage).
+   */
+  const save = useCallback((updater) => {
+    const next = typeof updater === 'function' ? updater(designRef.current) : updater
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+    } catch (e) {
+      const quota = e?.name === 'QuotaExceededError' || e?.code === 22
+      return {
+        ok: false,
+        error: quota
+          ? 'No hay espacio suficiente: las imágenes son muy pesadas. Usá imágenes más livianas.'
+          : 'No se pudo guardar el diseño',
+      }
+    }
+    designRef.current = next
     setDesign(next)
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)) } catch { /* quota exceeded */ }
+    return { ok: true }
   }, [])
 
   // ── Hero ────────────────────────────────────────────────────
   const updateHero = useCallback((heroData) => {
-    save(prev => ({ ...prev, hero: heroData }))
+    return save(prev => ({ ...prev, hero: heroData }))
   }, [save])
 
   // ── Category ────────────────────────────────────────────────
   const updateCategory = useCallback((categoryData) => {
-    save(prev => ({ ...prev, category: categoryData }))
+    return save(prev => ({ ...prev, category: categoryData }))
   }, [save])
 
   // ── Services ────────────────────────────────────────────────
   const updateServices = useCallback((servicesArray) => {
-    save(prev => ({ ...prev, services: servicesArray }))
+    return save(prev => ({ ...prev, services: servicesArray }))
   }, [save])
 
   // ── WhatsApp ─────────────────────────────────────────────────
   const updateWhatsapp = useCallback((whatsappData) => {
-    save(prev => ({ ...prev, whatsapp: { ...prev.whatsapp, ...whatsappData } }))
+    return save(prev => ({ ...prev, whatsapp: { ...prev.whatsapp, ...whatsappData } }))
   }, [save])
 
   /** Restablecer todo al estado por defecto */

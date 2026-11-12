@@ -1,12 +1,13 @@
 import React from 'react'
 import { FiTrash2, FiMinus, FiPlus } from 'react-icons/fi'
+import { PRODUCT_PLACEHOLDER, imgFallback } from '../Shared/ProductImage.jsx'
 import { useCart } from '../../context/CartContext.jsx'
 
 const CartItem = ({ item }) => {
   const { removeFromCart, updateQuantity } = useCart()
 
   // Soporte para productos con images[] (Tienda) y con img (home)
-  const image = item.images ? item.images[0] : item.img
+  const image = (item.images ? item.images[0] : item.img) || PRODUCT_PLACEHOLDER
 
   const unitPrice =
     item.discount > 0
@@ -23,6 +24,8 @@ const CartItem = ({ item }) => {
         <img
           src={image}
           alt={item.title}
+          loading="lazy"
+          onError={imgFallback}
           className="w-full h-full object-cover"
         />
       </div>

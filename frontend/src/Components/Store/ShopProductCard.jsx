@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { FaCartShopping, FaTag } from 'react-icons/fa6'
 import { FiX, FiChevronLeft, FiChevronRight, FiZoomIn } from 'react-icons/fi'
 import { useCart } from '../../context/CartContext.jsx'
-import ProductImage from '../Shared/ProductImage.jsx'
+import ProductImage, { imgFallback } from '../Shared/ProductImage.jsx'
 
 // ─── Lightbox ─────────────────────────────────────────────────────────────────
 
@@ -74,6 +74,7 @@ function Lightbox({ images, startIndex, title, onClose }) {
           <img
             src={images[idx]}
             alt={`${title} — imagen ${idx + 1}`}
+            onError={imgFallback}
             className="max-h-[65vh] w-auto max-w-full rounded-xl shadow-2xl object-contain select-none"
             draggable={false}
           />
@@ -112,7 +113,7 @@ function Lightbox({ images, startIndex, title, onClose }) {
                               ? 'border-white scale-110 shadow-lg opacity-100'
                               : 'border-white/20 opacity-50 hover:opacity-90 hover:border-white/50'}`}
               >
-                <img src={img} alt={`${title} ${i + 1}`} className="w-full h-full object-cover"/>
+                <img src={img} alt={`${title} ${i + 1}`} onError={imgFallback} className="w-full h-full object-cover"/>
               </button>
             ))}
           </div>
@@ -209,6 +210,7 @@ const ShopProductCard = ({ product }) => {
                 src={img}
                 alt={`${product.title} vista ${idx + 1}`}
                 loading="lazy"
+                onError={imgFallback}
                 className="w-full h-full object-cover"
               />
             </button>

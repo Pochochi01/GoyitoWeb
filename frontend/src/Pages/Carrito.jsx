@@ -11,6 +11,7 @@ import {
   FiShoppingBag, FiTrash2, FiCheckCircle, FiAlertCircle,
   FiPackage, FiCalendar, FiUser, FiCreditCard, FiX,
 } from 'react-icons/fi'
+import { imgFallback } from '../Components/Shared/ProductImage.jsx'
 import { FaCartShopping } from 'react-icons/fa6'
 
 // ─── Precio unitario con descuento ───────────────────────────
@@ -129,7 +130,7 @@ function ConfirmacionEfectivo({ orderDone, cartSnapshot }) {
               <div key={i} className="flex items-center gap-3 px-5 py-3">
                 {imgSrc ? (
                   <picture><source srcSet={imgSrc} type="image/webp"/>
-                    <img src={imgSrc} alt={nombre} className="w-12 h-12 object-cover rounded-xl flex-shrink-0 bg-gray-50"/>
+                    <img src={imgSrc} alt={nombre} onError={imgFallback} className="w-12 h-12 object-cover rounded-xl flex-shrink-0 bg-gray-50"/>
                   </picture>
                 ) : (
                   <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-700 flex-shrink-0 flex items-center justify-center">

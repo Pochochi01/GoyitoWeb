@@ -10,6 +10,7 @@ import StatusBadge from '../../../../../Components/Admin/StatusBadge.jsx'
 import ExportMenu  from '../../../../../Components/Admin/ExportMenu.jsx'
 import stockService   from '../../../../../api/services/stockService'
 import productService from '../../../../../api/services/productService'
+import { apiErrorMessage } from '../../../../../Components/Admin/AdminModal.jsx'
 
 const TIPO_ICON = {
   Entrada:      <FiArrowUp   className="text-green-500"/>,
@@ -32,13 +33,19 @@ export default function ProdStock() {
   const [allProducts,  setAllProducts] = useState([])
   const [loadingMov,   setLoadingMov]  = useState(true)
   const [loadingStock, setLoadingStock]= useState(true)
+  const [errMov,       setErrMov]      = useState('')
+  const [errStock,     setErrStock]    = useState('')
 
   const loadMovements = useCallback(async () => {
     setLoadingMov(true)
     try {
       const params = tipoFiltro !== 'Todos' ? { tipo: tipoFiltro } : {}
       setMovements(await stockService.getMovements(params))
-    } catch { setMovements([]) }
+      setErrMov('')
+    } catch (e) {
+      setMovements([])
+      setErrMov(apiErrorMessage(e, 'No se pudieron cargar los movimientos'))
+    }
     finally { setLoadingMov(false) }
   }, [tipoFiltro])
 
@@ -51,7 +58,8 @@ export default function ProdStock() {
       ])
       setLowStock(low)
       setAllProducts(prod.data)
-    } catch { /* silencioso */ }
+      setErrStock('')
+    } catch (e) { setErrStock(apiErrorMessage(e, 'No se pudo cargar el stock')) }
     finally { setLoadingStock(false) }
   }, [])
 
@@ -60,6 +68,12 @@ export default function ProdStock() {
 
   return (
     <div className="flex flex-col gap-5">
+      {(errMov || errStock) && (
+        <div role="alert" className="flex flex-wrap items-center gap-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3 text-sm text-red-600 dark:text-red-400">
+          <FiAlertTriangle size={14}/> <span className="flex-1 min-w-0">{errMov || errStock}</span>
+          <button onClick={() => { loadMovements(); loadStock() }} className="min-h-[36px] px-3 rounded-full font-semibold hover:bg-red-100 dark:hover:bg-red-900/40">Reintentar</button>
+        </div>
+      )}
       {/* Alertas */}
       {lowStock.length > 0 && (
         <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl p-4">
@@ -71,8 +85,8 @@ export default function ProdStock() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {lowStock.map(p => (
-              <div key={p.id} className="bg-white dark:bg-gray-800 rounded-xl px-3 py-2 flex justify-between items-center border border-orange-100 dark:border-orange-800/30">
-                <div>
+              <div key={p.id} className="bg-white dark:bg-gray-800 rounded-xl px-3 py-2 flex justify-between items-center gap-3 border border-orange-100 dark:border-orange-800/30">
+                <div className="min-w-0">
                   <p className="text-xs font-semibold text-gray-800 dark:text-white">{p.titulo}</p>
                   <p className="text-[10px] text-gray-400">{p.ubicacion || '—'}</p>
                 </div>
@@ -89,8 +103,8 @@ export default function ProdStock() {
       {/* Sub-tabs */}
       <div className="flex gap-2">
         {['movimientos','ubicaciones'].map(t => (
-          <button key={t} onClick={() => setTab(t)}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all capitalize
+          <button key={t} onClick={() => setTab(t)} aria-pressed={tab===t}
+            className={`flex-1 sm:flex-none px-4 min-h-[40px] rounded-xl text-xs font-semibold transition-colors
               ${tab===t?'bg-primary text-white':'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-primary/10 hover:text-primary'}`}>
             {t === 'movimientos' ? 'Movimientos de stock' : 'Ubicaciones en depósito'}
           </button>
@@ -103,8 +117,8 @@ export default function ProdStock() {
           <div className="flex flex-wrap items-center gap-2 p-4 border-b border-gray-100 dark:border-gray-700">
             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Tipo:</span>
             {['Todos','Entrada','Salida','Ajuste','Transferencia'].map(t => (
-              <button key={t} onClick={() => setTipoFiltro(t)}
-                className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all
+              <button key={t} onClick={() => setTipoFiltro(t)} aria-pressed={tipoFiltro===t}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors
                   ${tipoFiltro===t?'bg-primary text-white':'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-primary/10 hover:text-primary'}`}>
                 {t}
               </button>

@@ -5,6 +5,8 @@ import {
 } from 'react-icons/fi'
 import userService from '../../../api/services/userService'
 import { useAuth } from '../../../context/AuthContext.jsx'
+import Toast, { useToast } from '../../../Components/Shared/Toast.jsx'
+import { apiErrorMessage } from '../../../Components/Admin/AdminModal.jsx'
 
 // ─── Configuración de roles ───────────────────────────────────
 const ROLES = [
@@ -28,7 +30,7 @@ function RolBadge({ rol }) {
 }
 
 // ─── Selector de rol inline ───────────────────────────────────
-function RolSelector({ userId, currentRol, onSaved, disabled }) {
+function RolSelector({ userId, currentRol, onSaved, onError, disabled }) {
   const [rol,     setRol]     = useState(currentRol)
   const [saving,  setSaving]  = useState(false)
   const [saved,   setSaved]   = useState(false)
@@ -36,14 +38,17 @@ function RolSelector({ userId, currentRol, onSaved, disabled }) {
   const changed = rol !== currentRol
 
   const handleSave = async () => {
-    if (!changed) return
+    if (!changed || saving) return
     setSaving(true)
     try {
       await userService.updateRol(userId, rol)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
       onSaved(userId, rol)
-    } catch { setRol(currentRol) }
+    } catch (e) {
+      setRol(currentRol)
+      onError?.(apiErrorMessage(e, 'No se pudo cambiar el rol'))
+    }
     finally { setSaving(false) }
   }
 
@@ -53,7 +58,8 @@ function RolSelector({ userId, currentRol, onSaved, disabled }) {
         value={rol}
         onChange={e => setRol(e.target.value)}
         disabled={disabled || saving}
-        className={`px-2.5 py-1.5 text-xs rounded-lg border transition-all
+        aria-label="Cambiar rol"
+        className={`px-2.5 min-h-[36px] text-base sm:text-xs rounded-lg border transition-colors
           ${changed
             ? 'border-primary ring-1 ring-primary/30 bg-primary/5 dark:bg-primary/10'
             : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700'}
@@ -69,7 +75,7 @@ function RolSelector({ userId, currentRol, onSaved, disabled }) {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold
+          className="flex items-center gap-1 px-2.5 min-h-[36px] rounded-lg text-xs font-semibold
                      bg-primary text-white hover:bg-red-600 disabled:opacity-50 transition-colors"
         >
           {saving
@@ -87,12 +93,12 @@ function RolSelector({ userId, currentRol, onSaved, disabled }) {
 }
 
 // ─── Fila de usuario ──────────────────────────────────────────
-function UserRow({ user, currentUserId, onRolSaved, onToggleActivo }) {
+function UserRow({ user, currentUserId, onRolSaved, onRolError, onToggleActivo }) {
   const [toggling, setToggling] = useState(false)
   const isSelf = user.id === currentUserId
 
   const handleToggle = async () => {
-    if (isSelf) return
+    if (isSelf || toggling) return
     setToggling(true)
     try { await onToggleActivo(user.id) }
     finally { setToggling(false) }
@@ -138,6 +144,7 @@ function UserRow({ user, currentUserId, onRolSaved, onToggleActivo }) {
           userId={user.id}
           currentRol={user.rol}
           onSaved={onRolSaved}
+          onError={onRolError}
           disabled={isSelf}
         />
       </td>
@@ -148,7 +155,8 @@ function UserRow({ user, currentUserId, onRolSaved, onToggleActivo }) {
           onClick={handleToggle}
           disabled={toggling || isSelf}
           title={isSelf ? 'No podés inhabilitarte a vos mismo' : user.activo ? 'Inhabilitar usuario' : 'Habilitar usuario'}
-          className={`transition-colors disabled:opacity-40 disabled:cursor-not-allowed
+          aria-label={user.activo ? `Inhabilitar a ${user.username}` : `Habilitar a ${user.username}`}
+          className={`w-11 h-11 inline-flex items-center justify-center rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed
             ${user.activo ? 'text-green-500 hover:text-red-400' : 'text-gray-300 hover:text-green-500'}`}
         >
           {toggling
@@ -180,36 +188,41 @@ export default function UsuariosModule() {
   const [search,    setSearch]    = useState('')
   const [rolFilter, setRolFilter] = useState('')
   const [page,      setPage]      = useState(1)
-  const [toast,     setToast]     = useState({ msg: '', type: 'ok' })
+  const [debounced, setDebounced] = useState('')
+  const [loadError, setLoadError] = useState('')
+  const { toast, showToast } = useToast()
+  const reqId = React.useRef(0)
 
   const LIMIT = 15
 
-  const showToast = (msg, type = 'ok') => {
-    setToast({ msg, type })
-    setTimeout(() => setToast({ msg: '', type: 'ok' }), 3000)
-  }
-
-  const load = useCallback(async (p = page) => {
-    setLoading(true)
-    try {
-      const params = { page: p, limit: LIMIT }
-      if (search.trim()) params.search = search.trim()
-      if (rolFilter)     params.rol    = rolFilter
-      const res = await userService.getUsers(params)
-      setUsers(res.data)
-      setTotal(res.total)
-    } catch { /* silencioso */ }
-    finally { setLoading(false) }
-  }, [page, search, rolFilter])
-
-  useEffect(() => { load(1); setPage(1) }, [rolFilter])
-  useEffect(() => { load() }, [page])
-
   // Búsqueda con debounce
   useEffect(() => {
-    const t = setTimeout(() => { load(1); setPage(1) }, 350)
+    const t = setTimeout(() => setDebounced(search.trim()), 350)
     return () => clearTimeout(t)
   }, [search])
+
+  // Volver a la página 1 cuando cambian los filtros
+  useEffect(() => { setPage(1) }, [debounced, rolFilter])
+
+  const load = useCallback(async () => {
+    const id = ++reqId.current
+    setLoading(true)
+    try {
+      const params = { page, limit: LIMIT }
+      if (debounced) params.search = debounced
+      if (rolFilter) params.rol    = rolFilter
+      const res = await userService.getUsers(params)
+      if (id !== reqId.current) return          // respuesta vieja → descartar
+      setUsers(res.data)
+      setTotal(res.total)
+      setLoadError('')
+    } catch (e) {
+      if (id === reqId.current) setLoadError(apiErrorMessage(e, 'No se pudieron cargar los usuarios'))
+    }
+    finally { if (id === reqId.current) setLoading(false) }
+  }, [page, debounced, rolFilter])
+
+  useEffect(() => { load() }, [load])
 
   const handleRolSaved = (userId, newRol) => {
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, rol: newRol } : u))
@@ -220,9 +233,9 @@ export default function UsuariosModule() {
     try {
       const res = await userService.toggleActivo(userId)
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, activo: res.activo } : u))
-      showToast(res.activo ? 'Usuario habilitado' : 'Usuario inhabilitado', res.activo ? 'ok' : 'warn')
+      showToast(res.activo ? 'Usuario habilitado' : 'Usuario inhabilitado')
     } catch (e) {
-      showToast(e.response?.data?.message || 'Error al cambiar estado', 'error')
+      showToast(apiErrorMessage(e, 'Error al cambiar estado'), 'error')
     }
   }
 
@@ -230,13 +243,7 @@ export default function UsuariosModule() {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Toast */}
-      {toast.msg && (
-        <div className={`fixed top-5 right-5 z-50 px-4 py-2.5 rounded-xl shadow-lg text-white text-sm font-medium
-          ${toast.type === 'error' ? 'bg-red-500' : toast.type === 'warn' ? 'bg-orange-500' : 'bg-gray-900'}`}>
-          {toast.msg}
-        </div>
-      )}
+      <Toast toast={toast}/>
 
       {/* Barra de filtros */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 flex flex-col sm:flex-row gap-3">
@@ -244,18 +251,21 @@ export default function UsuariosModule() {
         <div className="relative flex-1">
           <FiSearch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
           <input
+            type="search"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Buscar por nombre, usuario o email…"
-            className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+            aria-label="Buscar usuario"
+            className="w-full pl-9 pr-4 min-h-[44px] text-base sm:text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
           />
         </div>
 
         {/* Filtro por rol */}
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex gap-1.5 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap items-center [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <button
             onClick={() => setRolFilter('')}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all
+            aria-pressed={rolFilter === ''}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap flex-shrink-0 transition-colors
               ${rolFilter === '' ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-primary/10 hover:text-primary'}`}
           >
             Todos
@@ -264,7 +274,8 @@ export default function UsuariosModule() {
             <button
               key={r.value}
               onClick={() => setRolFilter(r.value)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all
+              aria-pressed={rolFilter === r.value}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap flex-shrink-0 transition-colors
                 ${rolFilter === r.value ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-primary/10 hover:text-primary'}`}
             >
               {r.label}
@@ -274,8 +285,8 @@ export default function UsuariosModule() {
 
         <button
           onClick={() => load()}
-          className="p-2 text-gray-400 hover:text-primary transition-colors flex-shrink-0"
-          title="Recargar"
+          className="hidden sm:inline-flex w-10 h-10 items-center justify-center rounded-full text-gray-400 hover:text-primary transition-colors flex-shrink-0"
+          title="Recargar" aria-label="Recargar"
         >
           <FiRefreshCw size={15} className={loading ? 'animate-spin' : ''}/>
         </button>
@@ -293,12 +304,17 @@ export default function UsuariosModule() {
 
       {/* Tabla */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-        {loading ? (
+        {loading && users.length === 0 ? (
           <div className="flex justify-center py-16">
             <span className="w-7 h-7 border-4 border-primary/30 border-t-primary rounded-full animate-spin"/>
           </div>
+        ) : loadError ? (
+          <div className="text-center py-14 px-4">
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">{loadError}</p>
+            <button onClick={() => load()} className="px-5 min-h-[44px] rounded-full bg-primary hover:bg-red-600 text-white text-sm font-semibold">Reintentar</button>
+          </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className={`overflow-x-auto transition-opacity ${loading ? 'opacity-60' : ''}`} aria-busy={loading}>
             <table className="w-full text-sm">
               <thead className="bg-gray-50 dark:bg-gray-700/40">
                 <tr>
@@ -319,6 +335,7 @@ export default function UsuariosModule() {
                     user={u}
                     currentUserId={adminUser?.id ? +adminUser.id : null}
                     onRolSaved={handleRolSaved}
+                    onRolError={(msg) => showToast(msg, 'error')}
                     onToggleActivo={handleToggleActivo}
                   />
                 ))}
@@ -341,19 +358,22 @@ export default function UsuariosModule() {
           <button
             onClick={() => setPage(p => Math.max(1, p - 1))}
             disabled={page === 1 || loading}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 transition-colors"
+            aria-label="Página anterior"
+            className="flex items-center gap-1 px-3 min-h-[40px] rounded-lg border border-gray-200 dark:border-gray-600 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 transition-colors"
           >
-            <FiChevronLeft size={13}/> Anterior
+            <FiChevronLeft size={13}/> <span className="hidden sm:inline">Anterior</span>
           </button>
 
           <div className="flex gap-1">
-            {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-              const p = i + 1
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+              const start = Math.min(Math.max(1, page - 2), Math.max(1, totalPages - 4))
+              const p = start + i
               return (
                 <button
                   key={p}
                   onClick={() => setPage(p)}
-                  className={`w-8 h-8 rounded-lg text-xs font-semibold transition-all
+                  aria-current={page === p ? 'page' : undefined}
+                  className={`w-10 h-10 rounded-lg text-xs font-semibold transition-colors
                     ${page === p ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-primary/10 hover:text-primary'}`}
                 >
                   {p}
@@ -365,9 +385,10 @@ export default function UsuariosModule() {
           <button
             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             disabled={page === totalPages || loading}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 transition-colors"
+            aria-label="Página siguiente"
+            className="flex items-center gap-1 px-3 min-h-[40px] rounded-lg border border-gray-200 dark:border-gray-600 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 transition-colors"
           >
-            Siguiente <FiChevronRight size={13}/>
+            <span className="hidden sm:inline">Siguiente</span> <FiChevronRight size={13}/>
           </button>
         </div>
       )}
@@ -377,7 +398,7 @@ export default function UsuariosModule() {
         <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
           Descripción de roles
         </p>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {[
             { rol: 'comprador',      desc: 'Puede comprar en la tienda. Sin acceso al panel.' },
             { rol: 'pos',            desc: 'Acceso al punto de venta (POS). Sin acceso al panel admin.' },

@@ -41,18 +41,18 @@ export default function ProdPrecios() {
 
   const prod         = products.find(p => String(p.id) === simProdId)
   const precioConDesc= prod ? +(prod.price * (1 - simDesc / 100)).toFixed(2) : 0
-  const margenNormal = prod && prod.costo > 0 ? +((prod.price - prod.costo) / prod.price * 100).toFixed(1) : 0
-  const margenConDesc= prod && prod.costo > 0 ? +((precioConDesc - prod.costo) / precioConDesc * 100).toFixed(1) : 0
+  const margenNormal = prod && prod.costo > 0 && prod.price > 0 ? +((prod.price - prod.costo) / prod.price * 100).toFixed(1) : 0
+  const margenConDesc= prod && prod.costo > 0 && precioConDesc > 0 ? +((precioConDesc - prod.costo) / precioConDesc * 100).toFixed(1) : 0
 
   const ofertaProducts = products.filter(p => p.discount > 0)
 
   return (
     <div className="flex flex-col gap-5">
       {/* Sub-tabs */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {['historial','ofertas','simulador'].map(t => (
-          <button key={t} onClick={() => setTab(t)}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all capitalize
+          <button key={t} onClick={() => setTab(t)} aria-pressed={tab===t}
+            className={`px-4 min-h-[40px] whitespace-nowrap flex-shrink-0 rounded-xl text-xs font-semibold transition-colors
               ${tab===t?'bg-primary text-white':'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-primary/10 hover:text-primary'}`}>
             {t==='historial'?'Historial de precios':t==='ofertas'?'Productos en oferta':'Simulador de margen'}
           </button>
@@ -62,10 +62,17 @@ export default function ProdPrecios() {
       {/* Tab: historial */}
       {tab === 'historial' && (
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-          {loadingP ? (
+          <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+            <label htmlFor="hist-prod" className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Producto</label>
+            <select id="hist-prod" value={simProdId} onChange={e => setSimProdId(e.target.value)}
+              className="w-full sm:max-w-sm px-3 min-h-[44px] text-base sm:text-sm rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40">
+              {products.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+            </select>
+          </div>
+          {loadingP || loadingH ? (
             <div className="flex justify-center py-10"><span className="w-6 h-6 border-4 border-primary/30 border-t-primary rounded-full animate-spin"/></div>
           ) : (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full text-sm min-w-[560px]">
               <thead className="bg-gray-50 dark:bg-gray-700/40">
                 <tr>
                   {['Fecha','Producto','Precio','Motivo'].map(h => (
@@ -83,9 +90,9 @@ export default function ProdPrecios() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           )}
-          {!loadingP && history.length === 0 && (
+          {!loadingP && !loadingH && history.length === 0 && (
             <div className="text-center py-10 text-gray-400 text-sm">Sin historial de precios registrado</div>
           )}
         </div>
@@ -97,7 +104,7 @@ export default function ProdPrecios() {
           {loadingP ? (
             <div className="flex justify-center py-10"><span className="w-6 h-6 border-4 border-primary/30 border-t-primary rounded-full animate-spin"/></div>
           ) : (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full text-sm min-w-[560px]">
               <thead className="bg-gray-50 dark:bg-gray-700/40">
                 <tr>
                   {['Producto','Cat.','Precio normal','Precio c/desc','Descuento','Margen c/desc'].map(h => (
@@ -108,7 +115,7 @@ export default function ProdPrecios() {
               <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
                 {ofertaProducts.map(p => {
                   const pDesc = +(p.price * (1 - p.discount / 100)).toFixed(2)
-                  const m     = p.costo > 0 ? +((pDesc - p.costo) / pDesc * 100).toFixed(1) : null
+                  const m     = p.costo > 0 && pDesc > 0 ? +((pDesc - p.costo) / pDesc * 100).toFixed(1) : null
                   return (
                     <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/20 transition-colors">
                       <td className="px-4 py-3 font-semibold text-gray-800 dark:text-white">{p.title}</td>
@@ -127,7 +134,7 @@ export default function ProdPrecios() {
                   )
                 })}
               </tbody>
-            </table>
+            </table></div>
           )}
           {!loadingP && ofertaProducts.length === 0 && (
             <div className="text-center py-10 text-gray-400 text-sm">Sin productos en oferta</div>
