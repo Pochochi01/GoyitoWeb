@@ -48,16 +48,26 @@ async function update(req, res, next) {
     const cat = await Category.findById(id)
     if (!cat) return res.status(404).json({ message: 'Categoría no encontrada' })
 
-    const fields = { ...req.body }
-    if (fields.orden !== undefined)  fields.orden  = +fields.orden
+    const { quitar_imagen, ...fields } = req.body
+    delete fields.imagen
+    if (fields.nombre !== undefined && !String(fields.nombre).trim()) {
+      return res.status(400).json({ message: 'El nombre es obligatorio' })
+    }
+    if (fields.orden !== undefined)  fields.orden  = Number.isFinite(+fields.orden) ? Math.max(0, Math.floor(+fields.orden)) : 0
     if (fields.activo !== undefined) fields.activo = fields.activo === '0' || fields.activo === 0 || fields.activo === false ? 0 : 1
 
+    let oldImage = null
     if (req.file) {
-      deleteImage(cat.imagen)
+      oldImage = cat.imagen
       fields.imagen = await saveWebP(req.file.buffer, req.file.originalname)
+    } else if (quitar_imagen === '1' || quitar_imagen === 'true') {
+      // Antes el frontend permitía "quitar" la imagen pero nunca se enviaba
+      oldImage = cat.imagen
+      fields.imagen = null
     }
 
     await Category.update(id, fields)
+    if (oldImage) deleteImage(oldImage)   // borrar el archivo sólo si el UPDATE tuvo éxito
     const updated = await Category.findById(id)
     res.json(updated)
   } catch (err) {

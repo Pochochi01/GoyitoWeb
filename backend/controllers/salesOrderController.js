@@ -201,6 +201,10 @@ async function checkoutMP(req, res, next) {
 // ─── updateEstado ─────────────────────────────────────────────
 async function updateEstado(req, res, next) {
   try {
+    const ESTADOS = ['Pendiente', 'Pagada', 'Enviada', 'Entregada', 'Cancelada']
+    if (!ESTADOS.includes(req.body.estado)) {
+      return res.status(400).json({ message: 'Estado inválido' })
+    }
     const rows = await SalesOrder.updateEstado(+req.params.id, req.body.estado)
     if (!rows) return res.status(404).json({ message: 'Orden no encontrada' })
     res.json({ message: 'Estado actualizado' })

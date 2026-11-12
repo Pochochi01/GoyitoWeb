@@ -28,10 +28,11 @@ const ResponsiveMenu = ({ open, onClose }) => {
           {/* Panel */}
           <motion.div
             key="panel"
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
+            initial={{ opacity: 0, y: -12, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.98, transition: { duration: 0.15, ease: 'easeIn' } }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            style={{ transformOrigin: 'top center' }}
             className="absolute top-full left-0 right-0 z-40 px-4 pb-4 lg:hidden"
           >
             <div className="bg-primary rounded-2xl shadow-xl overflow-hidden">

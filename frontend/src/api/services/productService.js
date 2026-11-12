@@ -12,9 +12,10 @@ const toUrl = (ruta) => ruta ? `${BASE}/${ruta}` : null
 // Adapta producto backend → estructura esperada por el frontend
 export const adaptProduct = (p) => {
   const mainImg  = p.imagen ? [toUrl(p.imagen)] : []
-  const extraImg = p.imagenes_extra
-    ? p.imagenes_extra.split('|').filter(Boolean).map(toUrl)
+  const extraRutas = p.imagenes_extra
+    ? p.imagenes_extra.split('|').filter(Boolean)
     : []
+  const extraImg = extraRutas.map(toUrl)
 
   return {
     id:           p.id,
@@ -28,6 +29,7 @@ export const adaptProduct = (p) => {
     images:       [...mainImg, ...extraImg],  // array completo de URLs
     imagen:       p.imagen,                  // ruta relativa original
     imagenes_extra: extraImg,                // URLs de extras
+    imagenes_extra_rutas: extraRutas,        // rutas relativas (para conservar al editar)
     stock:        p.stock         ?? 0,
     stock_minimo: p.stock_minimo  ?? 5,
     costo:        Number(p.costo  ?? 0),

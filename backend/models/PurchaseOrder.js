@@ -62,8 +62,15 @@ const PurchaseOrder = {
     return orderId
   },
 
-  async updateEstado(id, estado) {
-    const [r] = await pool.query('UPDATE purchase_orders SET estado = ? WHERE id = ?', [estado, id])
+  // Lee el estado bloqueando la fila (usar dentro de una transacción)
+  async lockEstado(id, conn) {
+    const [rows] = await conn.query('SELECT estado FROM purchase_orders WHERE id = ? FOR UPDATE', [id])
+    return rows[0]?.estado ?? null
+  },
+
+  async updateEstado(id, estado, conn) {
+    const db = conn || pool
+    const [r] = await db.query('UPDATE purchase_orders SET estado = ? WHERE id = ?', [estado, id])
     return r.affectedRows
   },
 }

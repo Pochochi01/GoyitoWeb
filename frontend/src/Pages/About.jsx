@@ -46,7 +46,7 @@ export default function About() {
   }, [])
 
   return (
-    <div className="bg-white dark:bg-gray-900 min-h-screen flex flex-col overflow-hidden">
+    <div className="bg-white dark:bg-gray-900 min-h-screen flex flex-col overflow-x-clip">
       <NavBar />
 
       {/* ── HERO ─────────────────────────────────────────────────── */}

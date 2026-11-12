@@ -37,7 +37,7 @@ const BannerData2 = {
 
 const Inicio = ({ handleOrderPopup, orderPopup, setOrderPopup }) => {
   return (
-    <div className="bg-white dark:bg-gray-900 dark:text-white duration-200 overflow-hidden">
+    <div className="bg-white dark:bg-gray-900 dark:text-white duration-200 overflow-x-clip">
       <NavBar handleOrderPopup={handleOrderPopup} />
       <Hero handleOrderPopup={handleOrderPopup} />
       <Category />

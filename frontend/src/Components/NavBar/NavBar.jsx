@@ -1,5 +1,7 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { useScroll, useMotionValueEvent } from "framer-motion";
+import { ScrollProgress } from "../Motion/motion.jsx";
 import { IoMdSearch, IoMdMenu, IoMdClose } from "react-icons/io";
 import { FaCartShopping } from "react-icons/fa6";
 import DarkMode from "./DarkMode";
@@ -16,11 +18,29 @@ const MenuLinks = [
 
 const NavBar = ({ handleOrderPopup }) => {
   const [open, setOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   const { cartCount } = useCart()
+  const { pathname } = useLocation()
+
+  // Solo re-renderiza al cruzar el umbral, no en cada frame de scroll
+  const { scrollY } = useScroll()
+  useMotionValueEvent(scrollY, 'change', (y) => {
+    const next = y > 24
+    setScrolled(prev => (prev === next ? prev : next))
+  })
+
+  // Cerrar el menú móvil al navegar
+  useEffect(() => { setOpen(false) }, [pathname])
+
+  const glass = scrolled || open
 
   return (
-    <div className="bg-white dark:bg-gray-900 duration-200 relative z-40">
-      <div className="py-3 sm:py-4">
+    <header className={`sticky top-0 z-40 transition-[background-color,box-shadow,backdrop-filter] duration-300 ease-out-expo
+      ${glass
+        ? 'bg-white/75 dark:bg-gray-900/75 backdrop-blur-xl backdrop-saturate-150 shadow-[0_1px_0_rgba(0,0,0,0.06),0_8px_24px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_1px_0_rgba(255,255,255,0.06)]'
+        : 'bg-white dark:bg-gray-900'}`}>
+      {pathname === '/' && <ScrollProgress className="!absolute !top-auto bottom-0 !h-[2px]"/>}
+      <div className={`transition-[padding] duration-300 ease-out-expo ${scrolled ? 'py-1.5 sm:py-2' : 'py-3 sm:py-4'}`}>
         {/* Layout:
             • Mobile/Tablet (< lg): flex con justify-between → logo a la izquierda,
               acciones (cart, user, darkmode, burger) pegadas a la derecha, sin
@@ -35,9 +55,9 @@ const NavBar = ({ handleOrderPopup }) => {
               <img
                 src={logo}
                 alt="ZolImportados"
-                className="h-12 sm:h-16 w-auto object-contain flex-shrink-0
+                className={`${scrolled ? "h-10 sm:h-12" : "h-12 sm:h-16"} transition-[height] duration-300 w-auto object-contain flex-shrink-0
                            mix-blend-multiply
-                           dark:invert dark:mix-blend-normal"
+                           dark:invert dark:mix-blend-normal`}
               />
               <span className="text-primary font-semibold tracking-widest text-2xl uppercase sm:text-3xl hidden sm:block truncate">
                 ZolImportados
@@ -99,7 +119,8 @@ const NavBar = ({ handleOrderPopup }) => {
             <button
               className="lg:hidden flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               onClick={() => setOpen(!open)}
-              aria-label="Menú"
+              aria-label={open ? "Cerrar menú" : "Abrir menú"}
+              aria-expanded={open}
             >
               {open
                 ? <IoMdClose className="text-2xl sm:text-3xl" />
@@ -111,7 +132,7 @@ const NavBar = ({ handleOrderPopup }) => {
       </div>
 
       <ResponsiveMenu open={open} onClose={() => setOpen(false)} />
-    </div>
+    </header>
   );
 };
 

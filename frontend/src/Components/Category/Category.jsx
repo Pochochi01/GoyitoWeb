@@ -24,6 +24,7 @@ import macbook     from '../../assets/Category/macbook.png'
 import smartwatch2 from '../../assets/Category/smartwatch2.png'
 import { useDesign } from '../../context/DesignContext.jsx'
 import categoryService from '../../api/services/categoryService'
+import { TiltCard, Reveal } from '../Motion/motion.jsx'
 
 // Imágenes de fallback por índice (cuando la categoría no tiene imagen propia)
 const DEFAULT_IMGS = [earphone, watch, speaker, gaming, macbook, smartwatch2]
@@ -40,7 +41,7 @@ const CARD_STYLES = [
   { gradient: 'from-brandBlue to-brandBlue/50',      imgClass: 'w-[120px] h-[120px] sm:w-[150px] sm:h-[150px] lg:w-[200px] lg:h-[200px] absolute top-2 -right-2 sm:top-[4px]',                                           btnBg: 'bg-white',   btnTxt: 'text-brandBlue'   },
 ]
 
-const CategoryCard = ({ category, style, defaultImg, span = 1 }) => {
+const CategoryCard = ({ category, style, defaultImg, span = 1, delay = 0 }) => {
   // En mobile (< sm) NO se aplica col-span-2 — todas las cards ocupan ancho completo.
   // El doble ancho solo importa cuando hay grid de 3+ columnas.
   const spanCls = span === 2 ? 'sm:col-span-2' : ''
@@ -52,23 +53,27 @@ const CategoryCard = ({ category, style, defaultImg, span = 1 }) => {
   const imgSrc = category.imagenUrl || defaultImg
   const target = `/tienda?categoria=${encodeURIComponent(category.nombre)}`
   return (
-    <div className={`${spanCls} py-6 sm:py-10 pl-3 sm:pl-5
+    <Reveal delay={delay} className={`${spanCls} h-[220px] sm:h-[280px] lg:h-[320px]`}>
+    <TiltCard max={6} lift={0} className="h-full">
+    <div className={`h-full py-6 sm:py-10 pl-3 sm:pl-5
       bg-gradient-to-br ${style.gradient} text-white rounded-2xl sm:rounded-3xl relative
-      h-[220px] sm:h-[280px] lg:h-[320px]
-      flex items-end overflow-hidden`}>
+      flex items-end overflow-hidden group/cat`}>
       <div className="mb-2 sm:mb-4 sm:pl-2 max-w-[55%] sm:max-w-[60%]">
         <p className="mb-[2px] text-gray-200 text-xs sm:text-sm">Disfruta</p>
         <p className="text-lg sm:text-2xl font-semibold mb-[2px]">Con</p>
         <p className="text-xl sm:text-3xl xl:text-4xl font-bold opacity-30 mb-3 sm:mb-4 relative z-10 line-clamp-2 break-words">{category.nombre}</p>
         <Link to={target}
-          className={`${style.btnBg} ${style.btnTxt} inline-flex items-center cursor-pointer hover:scale-105 duration-300
+          className={`${style.btnBg} ${style.btnTxt} inline-flex items-center cursor-pointer transition-transform duration-200 ease-out hover:scale-105 active:scale-[0.97]
             py-2 px-5 sm:px-8 rounded-full relative z-10 text-xs sm:text-sm font-semibold
             min-h-[40px] sm:min-h-[44px]`}>
           Ver
         </Link>
       </div>
-      <img src={imgSrc} alt={category.nombre} className={`${style.imgClass} object-contain pointer-events-none`}/>
+      <img src={imgSrc} alt={category.nombre} loading="lazy"
+        className={`${style.imgClass} object-contain pointer-events-none transition-transform duration-500 ease-out-expo group-hover/cat:scale-105`}/>
     </div>
+    </TiltCard>
+    </Reveal>
   )
 }
 
@@ -100,8 +105,10 @@ const Category = () => {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-16">
-            <span className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"/>
+          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4" aria-busy="true">
+            {[1, 1, 2].map((span, i) => (
+              <div key={i} className={`${span === 2 ? 'sm:col-span-2' : ''} h-[220px] sm:h-[280px] lg:h-[320px] rounded-2xl sm:rounded-3xl bg-gray-100 dark:bg-gray-800 animate-pulse`}/>
+            ))}
           </div>
         ) : categories.length === 0 ? (
           <div className="text-center py-10 text-gray-400 text-sm">
@@ -110,17 +117,17 @@ const Category = () => {
         ) : (
           <>
             {/* Fila 1: 1+1+2 columnas */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4" data-aos="fade-up">
-              <CategoryCard category={cat(0)} style={CARD_STYLES[0]} defaultImg={DEFAULT_IMGS[0]} span={1}/>
-              <CategoryCard category={cat(1)} style={CARD_STYLES[1]} defaultImg={DEFAULT_IMGS[1]} span={1}/>
-              <CategoryCard category={cat(2)} style={CARD_STYLES[2]} defaultImg={DEFAULT_IMGS[2]} span={2}/>
+            <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              <CategoryCard category={cat(0)} style={CARD_STYLES[0]} defaultImg={DEFAULT_IMGS[0]} delay={0.00} span={1}/>
+              <CategoryCard category={cat(1)} style={CARD_STYLES[1]} defaultImg={DEFAULT_IMGS[1]} delay={0.08} span={1}/>
+              <CategoryCard category={cat(2)} style={CARD_STYLES[2]} defaultImg={DEFAULT_IMGS[2]} delay={0.16} span={2}/>
             </div>
 
             {/* Fila 2: 2+1+1 columnas */}
             <div className="pt-8 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              <CategoryCard category={cat(3)} style={CARD_STYLES[3]} defaultImg={DEFAULT_IMGS[3]} span={2}/>
-              <CategoryCard category={cat(4)} style={CARD_STYLES[4]} defaultImg={DEFAULT_IMGS[4]} span={1}/>
-              <CategoryCard category={cat(5)} style={CARD_STYLES[5]} defaultImg={DEFAULT_IMGS[5]} span={1}/>
+              <CategoryCard category={cat(3)} style={CARD_STYLES[3]} defaultImg={DEFAULT_IMGS[3]} delay={0.00} span={2}/>
+              <CategoryCard category={cat(4)} style={CARD_STYLES[4]} defaultImg={DEFAULT_IMGS[4]} delay={0.08} span={1}/>
+              <CategoryCard category={cat(5)} style={CARD_STYLES[5]} defaultImg={DEFAULT_IMGS[5]} delay={0.16} span={1}/>
             </div>
           </>
         )}

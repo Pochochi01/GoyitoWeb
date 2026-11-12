@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { FaCartShopping, FaTag } from 'react-icons/fa6'
 import { FiX, FiChevronLeft, FiChevronRight, FiZoomIn } from 'react-icons/fi'
 import { useCart } from '../../context/CartContext.jsx'
+import ProductImage from '../Shared/ProductImage.jsx'
 
 // ─── Lightbox ─────────────────────────────────────────────────────────────────
 
@@ -147,54 +148,59 @@ const ShopProductCard = ({ product }) => {
     ? (product.price * (1 - product.discount / 100)).toFixed(0)
     : null
 
+  const hasImages  = product.images.length > 0
   const currentIdx = product.images.indexOf(mainImage)
   const startIndex = currentIdx >= 0 ? currentIdx : 0
 
   return (
     <>
       <div
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-md hover:shadow-xl
-                   duration-300 overflow-hidden flex flex-col group"
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm ring-1 ring-black/5 dark:ring-white/5
+                   hover:shadow-xl transition-shadow duration-300 ease-out-expo
+                   overflow-hidden flex flex-col group h-full"
         data-aos="fade-up"
         data-aos-delay={product.aosDelay}
       >
         {/* Imagen principal — clickeable para abrir lightbox */}
-        <div
-          className="relative overflow-hidden bg-gray-100 dark:bg-gray-700 cursor-zoom-in"
-          onClick={() => setLightboxOpen(true)}
+        <ProductImage
+          src={mainImage}
+          alt={product.title}
+          className={hasImages ? 'cursor-zoom-in' : ''}
+          imgClassName="group-hover:scale-[1.04] [@media(hover:none)]:group-hover:scale-100"
         >
-          <img
-            src={mainImage}
-            alt={product.title}
-            className="w-full h-52 object-cover transition-transform duration-500 group-hover:scale-105"
-          />
-
-          {/* Overlay con icono zoom al hover */}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300
-                          flex items-center justify-center">
-            <div className="w-10 h-10 rounded-full bg-white/80 flex items-center justify-center
-                            opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100
-                            transition-all duration-300 shadow-md">
-              <FiZoomIn size={18} className="text-gray-700"/>
-            </div>
-          </div>
+          {hasImages && (
+            <button
+              type="button"
+              onClick={() => setLightboxOpen(true)}
+              aria-label={`Ampliar imagen de ${product.title}`}
+              className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/10
+                         transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+            >
+              <span className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-md
+                               opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100
+                               transition-[opacity,transform] duration-200 ease-out-expo">
+                <FiZoomIn size={18} className="text-gray-700"/>
+              </span>
+            </button>
+          )}
 
           {product.discount > 0 && (
-            <span className="absolute top-3 left-3 bg-primary text-white text-xs font-bold
-                             px-2 py-1 rounded-full flex items-center gap-1">
+            <span className="pointer-events-none absolute top-3 left-3 bg-primary text-white text-xs font-bold
+                             px-2 py-1 rounded-full flex items-center gap-1 shadow-sm">
               <FaTag className="text-[10px]"/>
-              {product.discount}% OFF
+              {product.discount}%<span className="hidden sm:inline"> OFF</span>
             </span>
           )}
-        </div>
+        </ProductImage>
 
         {/* Miniaturas */}
-        <div className="flex gap-2 px-3 pt-3">
+        {product.images.length > 1 && (
+        <div className="flex gap-1.5 sm:gap-2 px-2.5 sm:px-3 pt-2.5 sm:pt-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {product.images.slice(0, 4).map((img, idx) => (
             <button
               key={idx}
               onClick={() => setMainImage(img)}
-              className={`w-12 h-12 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-all duration-200
+              className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-all duration-200
                 ${mainImage === img
                   ? 'border-primary scale-105 shadow-sm'
                   : 'border-transparent hover:border-gray-300 dark:hover:border-gray-500'}`}
@@ -202,14 +208,16 @@ const ShopProductCard = ({ product }) => {
               <img
                 src={img}
                 alt={`${product.title} vista ${idx + 1}`}
+                loading="lazy"
                 className="w-full h-full object-cover"
               />
             </button>
           ))}
         </div>
+        )}
 
         {/* Info */}
-        <div className="flex flex-col flex-1 px-4 pt-3 pb-4 gap-2">
+        <div className="flex flex-col flex-1 px-3 sm:px-4 pt-3 pb-3 sm:pb-4 gap-2">
           <h3 className="font-semibold text-gray-800 dark:text-white text-sm leading-snug line-clamp-2">
             {product.title}
           </h3>
@@ -217,24 +225,24 @@ const ShopProductCard = ({ product }) => {
           <div className="flex items-center gap-2 mt-auto">
             {discountedPrice ? (
               <>
-                <span className="text-primary font-bold text-lg">${discountedPrice}</span>
-                <span className="text-gray-400 line-through text-sm">${product.price}</span>
+                <span className="text-primary font-bold text-base sm:text-lg tabular-nums">${discountedPrice}</span>
+                <span className="text-gray-400 line-through text-xs sm:text-sm tabular-nums">${product.price}</span>
               </>
             ) : (
-              <span className="text-gray-800 dark:text-white font-bold text-lg">${product.price}</span>
+              <span className="text-gray-800 dark:text-white font-bold text-base sm:text-lg tabular-nums">${product.price}</span>
             )}
           </div>
 
           <button
             onClick={handleAdd}
             className={`mt-2 flex items-center justify-center gap-2 w-full
-                       font-semibold py-2 px-4 rounded-full text-sm duration-200 active:scale-95
+                       font-semibold min-h-[44px] py-2 px-4 rounded-full text-sm transition-[background-color,transform] duration-150 active:scale-[0.97]
                        ${added
                          ? 'bg-brandGreen text-white'
                          : 'bg-primary hover:bg-red-600 text-white'}`}
           >
-            <FaCartShopping/>
-            {added ? '¡Agregado!' : 'Agregar al Carrito'}
+            <FaCartShopping className="flex-shrink-0"/>
+            <span className="truncate">{added ? '¡Agregado!' : <>Agregar<span className="hidden sm:inline"> al carrito</span></>}</span>
           </button>
         </div>
       </div>

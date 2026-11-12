@@ -42,8 +42,17 @@ const Products = () => {
         <Heading title="Nuestros Productos" subtitle={"Conozca Nuestros Productos"}/>
 
         {loading ? (
-          <div className="flex justify-center py-12">
-            <span className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"/>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-5 mb-10" aria-busy="true" aria-label="Cargando productos">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="rounded-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/5 animate-pulse">
+                <div className="aspect-square bg-gray-100 dark:bg-gray-800"/>
+                <div className="p-4 space-y-2">
+                  <div className="h-3 w-3/4 rounded bg-gray-100 dark:bg-gray-800"/>
+                  <div className="h-3 w-1/3 rounded bg-gray-100 dark:bg-gray-800"/>
+                  <div className="h-11 rounded-full bg-gray-100 dark:bg-gray-800 mt-3"/>
+                </div>
+              </div>
+            ))}
           </div>
         ) : items.length === 0 ? (
           <p className="text-center py-10 text-gray-400 text-sm">

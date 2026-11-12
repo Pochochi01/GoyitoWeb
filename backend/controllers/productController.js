@@ -86,13 +86,20 @@ async function update(req, res, next) {
       return res.status(404).json({ message: 'Producto no encontrado' })
     }
 
-    const fields = { ...req.body }
+    const { imagenes_conservar, quitar_imagen, ...fields } = req.body
     const files  = req.files || {}
+    const toDelete = [] // archivos físicos a borrar sólo tras commit
 
-    // Nueva imagen principal → borrar la anterior y guardar la nueva
+    // Nueva imagen principal → reemplaza la anterior.
+    // quitar_imagen=1 sin archivo nuevo → deja el producto sin imagen.
+    // Si no llega ninguno de los dos, la imagen actual se conserva intacta.
+    delete fields.imagen
     if (files.imagen?.[0]) {
-      deleteImage(product.imagen)
+      if (product.imagen) toDelete.push(product.imagen)
       fields.imagen = await saveWebP(files.imagen[0].buffer, files.imagen[0].originalname)
+    } else if (quitar_imagen === '1' || quitar_imagen === 'true') {
+      if (product.imagen) toDelete.push(product.imagen)
+      fields.imagen = null
     }
 
     // Historial de precio (dentro de la misma transacción)
@@ -105,7 +112,9 @@ async function update(req, res, next) {
       }, conn)
     }
 
-    await Product.update(id, fields)
+    // Debe usar la misma conexión: el INSERT en price_history toma un lock
+    // sobre la fila del producto (FK) y un UPDATE por otra conexión se bloquea.
+    await Product.update(id, fields, conn)
 
     // Stock / costo / ubicación
     if (
@@ -121,17 +130,29 @@ async function update(req, res, next) {
       }, conn)
     }
 
-    // Imágenes adicionales: solo se reemplazan si llegan nuevas
-    if (files.imagenes_extra?.length) {
+    // Imágenes adicionales.
+    // imagenes_conservar (JSON array de rutas relativas) indica cuáles de las
+    // existentes se mantienen. Si no se envía y no hay archivos nuevos, no se toca nada.
+    const hasNewExtras = files.imagenes_extra?.length > 0
+    if (imagenes_conservar !== undefined || hasNewExtras) {
+      let keep = null
+      if (imagenes_conservar !== undefined) {
+        try { keep = JSON.parse(imagenes_conservar) } catch { keep = [] }
+        if (!Array.isArray(keep)) keep = []
+      }
       const oldRutas = await Product.deleteImages(id, conn)
-      oldRutas.forEach(r => deleteImage(r))
-      const newRutas = await Promise.all(
-        files.imagenes_extra.map(f => saveWebP(f.buffer, f.originalname))
-      )
-      await Product.addImages(id, newRutas, conn)
+      // Sin lista explícita (cliente antiguo) → conservar todas las existentes
+      const kept = keep === null ? oldRutas : oldRutas.filter(r => keep.includes(r))
+      oldRutas.filter(r => !kept.includes(r)).forEach(r => toDelete.push(r))
+      const newRutas = hasNewExtras
+        ? await Promise.all(files.imagenes_extra.map(f => saveWebP(f.buffer, f.originalname)))
+        : []
+      const finalRutas = [...kept, ...newRutas].slice(0, 4)
+      await Product.addImages(id, finalRutas, conn)
     }
 
     await conn.commit()
+    toDelete.forEach(r => deleteImage(r))
     res.json({ message: 'Producto actualizado' })
   } catch (err) {
     await conn.rollback()

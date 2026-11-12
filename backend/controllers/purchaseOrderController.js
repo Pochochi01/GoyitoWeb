@@ -40,14 +40,29 @@ async function updateEstado(req, res, next) {
   try {
     await conn.beginTransaction()
     const { estado } = req.body
+    const ESTADOS = ['Pendiente', 'En tránsito', 'Recibida', 'Cancelada']
+    if (!ESTADOS.includes(estado)) {
+      await conn.rollback()
+      return res.status(400).json({ message: 'Estado inválido' })
+    }
     const id = +req.params.id
+    // FOR UPDATE: serializa peticiones concurrentes (doble click en "Recibida"
+    // sumaba el stock dos veces porque ambas leían el estado anterior).
+    const estadoActual = await PurchaseOrder.lockEstado(id, conn)
+    if (estadoActual === null) {
+      await conn.rollback()
+      return res.status(404).json({ message: 'Orden no encontrada' })
+    }
+    if (estadoActual === 'Recibida' && estado !== 'Recibida') {
+      await conn.rollback()
+      return res.status(409).json({ message: 'La orden ya fue recibida; su stock ya se ingresó' })
+    }
     const order = await PurchaseOrder.findById(id)
-    if (!order) return res.status(404).json({ message: 'Orden no encontrada' })
 
-    await PurchaseOrder.updateEstado(id, estado)
+    await PurchaseOrder.updateEstado(id, estado, conn)
 
     // Cuando se recibe la orden, incrementar stock e registrar movimiento
-    if (estado === 'Recibida' && order.estado !== 'Recibida') {
+    if (estado === 'Recibida' && estadoActual !== 'Recibida') {
       const fecha = new Date().toISOString().split('T')[0]
       for (const item of order.items) {
         if (item.producto_id) {

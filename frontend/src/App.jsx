@@ -25,7 +25,16 @@ const App = () => {
   const handleOrderPopup = () => setOrderPopup(!orderPopup)
 
   React.useEffect(() => {
-    AOS.init({ offset: 100, duration: 800, easing: 'ease-in-sine', delay: 100 })
+    // Entradas: curva de desaceleración (ease-out), una sola vez, y nada de
+    // movimiento si el sistema pide reducirlo.
+    AOS.init({
+      offset: 60,
+      duration: 650,
+      easing: 'ease-out-cubic',
+      delay: 0,
+      once: true,
+      disable: () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    })
     AOS.refresh()
   }, [])
 

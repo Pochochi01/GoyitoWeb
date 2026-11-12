@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   FiLayout, FiPackage, FiShoppingBag, FiLogOut,
@@ -40,24 +40,34 @@ const Dashboard = () => {
   const handleLogout = () => { logout(); navigate('/') }
   const handleNav    = (id) => { setActiveSection(id); setSidebarOpen(false) }
 
+  // Drawer mobile: Escape cierra y se bloquea el scroll del fondo mientras está abierto
+  useEffect(() => {
+    if (!sidebarOpen) return
+    const onKey = (e) => { if (e.key === 'Escape') setSidebarOpen(false) }
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', onKey)
+    return () => { document.body.style.overflow = prev; window.removeEventListener('keydown', onKey) }
+  }, [sidebarOpen])
+
   // Solo muestra los ítems permitidos para el rol del usuario
   const NAV_ITEMS = ALL_NAV_ITEMS.filter(item => item.roles.includes(user?.role))
 
   const activeLabel = NAV_ITEMS.find(n => n.id === activeSection)?.label ?? 'Dashboard'
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
+    <div className="flex h-[100dvh] bg-gray-50 dark:bg-gray-900 overflow-hidden">
 
       {/* ── Sidebar ── */}
       <>
         {sidebarOpen && (
-          <div className="fixed inset-0 z-20 bg-black/40 lg:hidden"
+          <div className="fixed inset-0 z-20 bg-black/40 lg:hidden animate-[fadeIn_200ms_ease-out]" aria-hidden="true"
             onClick={() => setSidebarOpen(false)}/>
         )}
 
         <aside className={`fixed lg:static inset-y-0 left-0 z-30 w-64 flex flex-col
                            bg-gray-900 dark:bg-gray-950 text-white
-                           transform transition-transform duration-300
+                           transform transition-transform duration-300 ease-drawer pb-[env(safe-area-inset-bottom)]
                            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
 
           {/* Brand */}
@@ -66,7 +76,7 @@ const Dashboard = () => {
               Goyito's<br/>
               <span className="text-white text-xs font-normal tracking-normal normal-case">Panel Admin</span>
             </Link>
-            <button className="lg:hidden text-gray-400 hover:text-white" onClick={() => setSidebarOpen(false)}>
+            <button className="lg:hidden w-11 h-11 -mr-2 flex items-center justify-center rounded-full text-gray-400 hover:text-white hover:bg-white/10" aria-label="Cerrar menú" onClick={() => setSidebarOpen(false)}>
               <FiX size={20}/>
             </button>
           </div>
@@ -94,7 +104,8 @@ const Dashboard = () => {
                 <li key={item.id}>
                   <button
                     onClick={() => handleNav(item.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
+                    aria-current={activeSection === item.id ? 'page' : undefined}
+                    className={`w-full flex items-center gap-3 px-3 min-h-[44px] rounded-xl text-sm font-medium
                                 transition-all duration-150
                                 ${activeSection === item.id
                                   ? 'bg-primary text-white shadow-md shadow-primary/30'
@@ -133,21 +144,22 @@ const Dashboard = () => {
       {/* ── Main ── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top bar */}
-        <header className="flex items-center gap-4 px-5 py-4 bg-white dark:bg-gray-800
+        <header className="flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3 sm:py-4 bg-white dark:bg-gray-800
                            border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
-          <button className="lg:hidden text-gray-600 dark:text-gray-400 hover:text-primary"
+          <button className="lg:hidden w-11 h-11 -ml-2 flex items-center justify-center rounded-full text-gray-600 dark:text-gray-400 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-700"
+            aria-label="Abrir menú" aria-expanded={sidebarOpen}
             onClick={() => setSidebarOpen(true)}>
             <FiMenu size={22}/>
           </button>
-          <div className="flex-1">
-            <h1 className="text-lg font-bold text-gray-800 dark:text-white">{activeLabel}</h1>
+          <div className="flex-1 min-w-0">
+            <h1 className="truncate text-lg font-bold text-gray-800 dark:text-white">{activeLabel}</h1>
             <p className="text-xs text-gray-400">Dashboard · {activeLabel}</p>
           </div>
           <DarkMode />
         </header>
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto p-5 lg:p-7">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-5 lg:p-7">
           {activeSection === 'ventas'    && <VentasModule />}
           {activeSection === 'productos' && <ProductosModule />}
           {activeSection === 'categorias'&& <CategoriasModule />}

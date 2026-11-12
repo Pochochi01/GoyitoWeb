@@ -68,13 +68,22 @@ const Product = {
     return r.insertId
   },
 
-  async update(id, fields) {
+  async update(id, fields, conn) {
+    const db = conn || pool
     const allowed = ['titulo', 'precio', 'descuento', 'categoria_id', 'imagen', 'activo', 'descripcion', 'barcode']
-    const entries = Object.entries(fields).filter(([k]) => allowed.includes(k))
+    // "" no es válido para columnas numéricas/únicas → normalizar
+    const nullIfEmpty = ['barcode', 'descripcion', 'imagen']
+    const entries = Object.entries(fields)
+      .filter(([k]) => allowed.includes(k))
+      .map(([k, v]) => {
+        if (v === '' && nullIfEmpty.includes(k)) return [k, null]
+        if (v === '' && k === 'descuento') return [k, 0]
+        return [k, v]
+      })
     if (!entries.length) return 0
     const set  = entries.map(([k]) => `${k} = ?`).join(', ')
     const vals = [...entries.map(([, v]) => v), id]
-    const [r] = await pool.query(`UPDATE products SET ${set} WHERE id = ?`, vals)
+    const [r] = await db.query(`UPDATE products SET ${set} WHERE id = ?`, vals)
     return r.affectedRows
   },
 
